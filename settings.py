@@ -51,26 +51,29 @@ def initialize():
 
 def init_user_list():
    
-    df_cr_users, df_unity_users, df_cr_first_open, df_cr_app_launch = cache_users_list()
+    df_campaign_users = cache_users_list()
 
-    if "df_cr_users" not in st.session_state:
-        st.session_state["df_cr_users"] = df_cr_users
-    if "df_unity_users" not in st.session_state:
-        st.session_state["df_unity_users"] = df_unity_users
-    if "df_cr_first_open" not in st.session_state:
-        st.session_state["df_cr_first_open"] = df_cr_first_open
-    if "df_cr_app_launch" not in st.session_state:
-        st.session_state["df_cr_app_launch"] = df_cr_app_launch
+    if "df_campaign_users" not in st.session_state:
+        st.session_state["df_campaign_users"] = df_campaign_users
+
 
 # Get the campaign data from BigQuery, roll it up per campaign
 def init_campaign_data():
 # Call the combined asynchronous campaign data function
-    df_goog_all, df_fb_all = cache_marketing_data()
+    df_campaign_ids, df_google_ads_data, df_facebook_ads_data = cache_marketing_data()
 
     #Get all campaign data by segment_date
-    df_campaigns_all = pd.concat([df_goog_all, df_fb_all])
+    df_campaigns_all = pd.concat([df_google_ads_data, df_facebook_ads_data])
     df_campaigns_all = campaigns.add_country_and_language(df_campaigns_all)
     df_campaigns_all = df_campaigns_all.reset_index(drop=True)
+
+    df_campaigns_rollup = campaigns.rollup_campaign_data(df_campaigns_all)
+
+    if "df_campaigns_rollup" not in st.session_state:
+        st.session_state["df_campaigns_rollup"] = df_campaigns_rollup
+
+    if "df_campaign_ids" not in st.session_state:
+        st.session_state["df_campaign_ids"] = df_campaign_ids
 
     if "df_campaigns_all" not in st.session_state:
         st.session_state["df_campaigns_all"] = df_campaigns_all
@@ -80,10 +83,6 @@ def cache_marketing_data():
     # Execute the async function and return its result synchronously
     return asyncio.run(campaigns.get_campaign_data())
 
-def init_cr_app_version_list():
-    cr_app_versions_list = users.get_app_version_list()
-    if "cr_app_versions_list" not in st.session_state:
-        st.session_state.cr_app_versions_list = cr_app_versions_list
 
 @st.cache_data(ttl="1d", show_spinner="Gathering User List")
 def cache_users_list():

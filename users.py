@@ -3,7 +3,7 @@ import pandas as pd
 from rich import print as print
 import numpy as np
 from pyinstrument import Profiler
-import logging
+
 import asyncio
 
 # How far back to obtain user data.  Currently the queries pull back to 01/01/2021
@@ -29,67 +29,30 @@ async def get_users_list():
             return await asyncio.to_thread(bq_client.query(query).to_dataframe)
 
         # Define the queries
-        sql_unity_users = f"""
+        sql_campaign_users = f"""
             SELECT *
-            FROM `dataexploration-193817.user_data.unity_user_progress`
-            WHERE first_open BETWEEN PARSE_DATE('%Y/%m/%d','{start_date}') AND CURRENT_DATE()
-        """
-        sql_cr_first_open = f"""
-            SELECT *
-            FROM `dataexploration-193817.user_data.cr_first_open`
-            WHERE first_open BETWEEN PARSE_DATE('%Y/%m/%d','{start_date}') AND CURRENT_DATE()
-        """
-        sql_cr_users = f"""
-            SELECT *
-            FROM `dataexploration-193817.user_data.cr_user_progress`
-            WHERE first_open BETWEEN PARSE_DATE('%Y/%m/%d','{start_date}') AND CURRENT_DATE()
-        """
-        sql_cr_app_launch = f"""
-            SELECT *
-            FROM `dataexploration-193817.user_data.cr_app_launch`
-            WHERE first_open BETWEEN PARSE_DATE('%Y/%m/%d','{start_date}') AND CURRENT_DATE()
-        """
+            FROM `dataexploration-193817.user_data.cr_app_launch_campaign_data`
+         """
 
         # Run all the queries asynchronously
-        df_unity_users, df_cr_first_open, df_cr_users, df_cr_app_launch = await asyncio.gather(
-            run_query(sql_unity_users),
-            run_query(sql_cr_first_open),
-            run_query(sql_cr_users),
-            run_query(sql_cr_app_launch),
+        df_campaign_users, = await asyncio.gather(
+            run_query(sql_campaign_users)
         )
+        print(type(df_campaign_users))
 
         # Eliminate duplicate cr users (multiple language combinations) - just keep the first one
-        df_cr_app_launch = df_cr_app_launch.drop_duplicates(subset='user_pseudo_id', keep="first")
+        df_campaign_users = df_campaign_users.drop_duplicates(subset='user_pseudo_id', keep="first")
 
         # Fix data typos
-        df_cr_app_launch["app_language"] = df_cr_app_launch["app_language"].replace(
+        df_campaign_users["app_language"] = df_campaign_users["app_language"].replace(
             "ukranian", "ukrainian"
         )
-        df_cr_app_launch["app_language"] = df_cr_app_launch["app_language"].replace(
+        df_campaign_users["app_language"] = df_campaign_users["app_language"].replace(
             "malgache", "malagasy"
         )
-        df_cr_users["app_language"] = df_cr_users["app_language"].replace(
-            "ukranian", "ukrainian"
-        )
-        df_cr_users["app_language"] = df_cr_users["app_language"].replace(
-            "malgache", "malagasy"
-        )
-        df_unity_users["app_language"] = df_unity_users["app_language"].replace(
-            "ukranian", "ukrainian"
-        )
-        df_unity_users["app_language"] = df_unity_users["app_language"].replace(
-            "malgache", "malagasy"
-        )
-
-        # Process max levels for cr_users and unity_users
-        max_level_indices_cr = df_cr_users.groupby('user_pseudo_id')['max_user_level'].idxmax()
-        df_cr_users = df_cr_users.loc[max_level_indices_cr].reset_index()
-
-        max_level_indices_unity = df_unity_users.groupby('user_pseudo_id')['max_user_level'].idxmax()
-        df_unity_users = df_unity_users.loc[max_level_indices_unity].reset_index()
 
     p.print(color="red")
-    return df_cr_users, df_unity_users, df_cr_first_open, df_cr_app_launch
+    return df_campaign_users
 
 
 

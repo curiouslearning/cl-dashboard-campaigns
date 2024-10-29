@@ -1,17 +1,11 @@
 import streamlit as st
 import pandas as pd
 from rich import print as print
-import campaigns
-import metrics
 import asyncio
 from pyinstrument import Profiler
 
 
-# Starting 05/01/2024, campaign names were changed to support an indication of 
-# both language and country through a naming convention.  So we are only collecting
-# and reporting on daily campaign segment data from that day forward.
-
-# Combined function to fetch Google and Facebook campaign data concurrently
+# Proper UTM parameter data was implemented on the marketing side and in the CR production 
 
 async def get_campaign_data():
     p = Profiler(async_mode="disabled")
@@ -22,10 +16,19 @@ async def get_campaign_data():
         async def run_query(query):
             return await asyncio.to_thread(bq_client.query(query).to_dataframe)
 
+        # Campaign IDs query
+        campaign_ids_query = """
+            SELECT
+                DISTINCT (campaign_id),
+                source,
+            FROM
+                dataexploration-193817.user_data.cr_app_launch_campaign_data        
+        """
+
         # Google Ads Query
         google_ads_query = """
             SELECT
-                metrics.campaign_id,
+                distinct metrics.campaign_id,
                 metrics.segments_date as segment_date,
                 campaigns.campaign_name,
                 metrics_cost_micros as cost,
@@ -35,7 +38,7 @@ async def get_campaign_data():
             FROM dataexploration-193817.marketing_data.p_ads_CampaignStats_6687569935 as metrics
             INNER JOIN dataexploration-193817.marketing_data.ads_Campaign_6687569935 as campaigns
             ON metrics.campaign_id = campaigns.campaign_id
-            AND metrics.segments_date >= '2024-05-01'
+            AND metrics.segments_date >= '2024-09-11'
             GROUP BY 1,2,3,4,5,6
         """
 
@@ -50,12 +53,13 @@ async def get_campaign_data():
                 d.end_time as campaign_end_date,
                 "Facebook" as source
             FROM dataexploration-193817.marketing_data.facebook_ads_data as d
-            WHERE d.data_date_start >= '2024-05-01'
+            WHERE d.data_date_start >= '2024-09-11'
             ORDER BY d.data_date_start DESC;
         """
 
         # Run both queries concurrently using asyncio.gather
-        google_ads_data, facebook_ads_data = await asyncio.gather(
+        campaign_ids_data,google_ads_data, facebook_ads_data = await asyncio.gather(
+            run_query(campaign_ids_query),
             run_query(google_ads_query),
             run_query(facebook_ads_query)
         )
@@ -63,10 +67,9 @@ async def get_campaign_data():
         # Process Google Ads Data
         google_ads_data["campaign_id"] = google_ads_data["campaign_id"].astype(str).str.replace(",", "")
         google_ads_data["cost"] = google_ads_data["cost"].divide(1000000).round(2)
-  #      google_ads_data["segment_date"] = pd.to_datetime
         google_ads_data["segment_date"] = pd.to_datetime(google_ads_data["segment_date"])
     p.print(color="red")
-    return google_ads_data, facebook_ads_data
+    return campaign_ids_data ,google_ads_data , facebook_ads_data
 
 @st.cache_data(ttl="1d", show_spinner=False)
 # Looks for the string following the dash and makes that the associated country.
@@ -149,23 +152,6 @@ def rollup_campaign_data(df):
 
     return df
 
-
-
-@st.cache_data(ttl="1d", show_spinner=False)
-def get_campaigns_by_date(daterange):
-    df_campaigns_all = st.session_state.df_campaigns_all
-
-    conditions = [
-        f"@daterange[0] <= segment_date <= @daterange[1]",
-    ]
-
-    query = " and ".join(conditions)
-    df = df_campaigns_all.query(query)
-
-    df = campaigns.rollup_campaign_data(df)
-    df = campaigns.add_google_button_clicks(df, daterange)
-
-    return df
 
 
 @st.cache_data(ttl="1d", show_spinner=True)
