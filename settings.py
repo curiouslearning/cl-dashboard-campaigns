@@ -60,7 +60,7 @@ def init_user_list():
 # Get the campaign data from BigQuery, roll it up per campaign
 def init_campaign_data():
 # Call the combined asynchronous campaign data function
-    df_campaign_ids, df_google_ads_data, df_facebook_ads_data = cache_marketing_data()
+    df_google_ads_data, df_facebook_ads_data = cache_marketing_data()
 
     #Get all campaign data by segment_date
     df_campaigns_all = pd.concat([df_google_ads_data, df_facebook_ads_data])
@@ -71,9 +71,6 @@ def init_campaign_data():
 
     if "df_campaigns_rollup" not in st.session_state:
         st.session_state["df_campaigns_rollup"] = df_campaigns_rollup
-
-    if "df_campaign_ids" not in st.session_state:
-        st.session_state["df_campaign_ids"] = df_campaign_ids
 
     if "df_campaigns_all" not in st.session_state:
         st.session_state["df_campaigns_all"] = df_campaigns_all

@@ -7,15 +7,14 @@ from pyinstrument import Profiler
 import asyncio
 
 # How far back to obtain user data.  Currently the queries pull back to 01/01/2021
-start_date = "2021/01/01"
+start_date = "2024/09/11"
+sources_to_remove = ['testingSource','DSS-Botswana']
 
 # Firebase returns two different formats of user_pseudo_id between
 # web app events and android events, so we have to run multiple queries
 # instead of a join because we don't have a unique key for both
 # This would all be unncessery if dev had included the app user id per the spec.
 
-
-import logging
 import streamlit as st
 
 async def get_users_list():
@@ -50,6 +49,9 @@ async def get_users_list():
         df_campaign_users["app_language"] = df_campaign_users["app_language"].replace(
             "malgache", "malagasy"
         )
+
+    #Remove garbage sources
+    df_campaign_users = df_campaign_users[~df_campaign_users['source'].isin(sources_to_remove)]
 
     p.print(color="red")
     return df_campaign_users

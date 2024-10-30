@@ -4,7 +4,7 @@ from rich import print as print
 import asyncio
 from pyinstrument import Profiler
 
-
+data_start = '2024-09-11'
 # Proper UTM parameter data was implemented on the marketing side and in the CR production 
 
 async def get_campaign_data():
@@ -16,14 +16,6 @@ async def get_campaign_data():
         async def run_query(query):
             return await asyncio.to_thread(bq_client.query(query).to_dataframe)
 
-        # Campaign IDs query
-        campaign_ids_query = """
-            SELECT
-                DISTINCT (campaign_id),
-                source,
-            FROM
-                dataexploration-193817.user_data.cr_app_launch_campaign_data        
-        """
 
         # Google Ads Query
         google_ads_query = """
@@ -33,8 +25,7 @@ async def get_campaign_data():
                 campaigns.campaign_name,
                 metrics_cost_micros as cost,
                 campaigns.campaign_start_date,
-                campaigns.campaign_end_date, 
-                "Google" as source
+                campaigns.campaign_end_date
             FROM dataexploration-193817.marketing_data.p_ads_CampaignStats_6687569935 as metrics
             INNER JOIN dataexploration-193817.marketing_data.ads_Campaign_6687569935 as campaigns
             ON metrics.campaign_id = campaigns.campaign_id
@@ -50,16 +41,14 @@ async def get_campaign_data():
                 d.campaign_name,
                 d.spend as cost,
                 d.start_time as campaign_start_date, 
-                d.end_time as campaign_end_date,
-                "Facebook" as source
+                d.end_time as campaign_end_date
             FROM dataexploration-193817.marketing_data.facebook_ads_data as d
             WHERE d.data_date_start >= '2024-09-11'
             ORDER BY d.data_date_start DESC;
         """
 
         # Run both queries concurrently using asyncio.gather
-        campaign_ids_data,google_ads_data, facebook_ads_data = await asyncio.gather(
-            run_query(campaign_ids_query),
+        google_ads_data, facebook_ads_data = await asyncio.gather(
             run_query(google_ads_query),
             run_query(facebook_ads_query)
         )
@@ -68,8 +57,13 @@ async def get_campaign_data():
         google_ads_data["campaign_id"] = google_ads_data["campaign_id"].astype(str).str.replace(",", "")
         google_ads_data["cost"] = google_ads_data["cost"].divide(1000000).round(2)
         google_ads_data["segment_date"] = pd.to_datetime(google_ads_data["segment_date"])
+
+        #Truncate the string timestamp to just the date
+        facebook_ads_data['campaign_start_date'] = facebook_ads_data['campaign_start_date'].str[:10]
+        facebook_ads_data['campaign_end_date'] = facebook_ads_data['campaign_end_date'].str[:10]
+
     p.print(color="red")
-    return campaign_ids_data ,google_ads_data , facebook_ads_data
+    return google_ads_data , facebook_ads_data
 
 @st.cache_data(ttl="1d", show_spinner=False)
 # Looks for the string following the dash and makes that the associated country.
@@ -122,7 +116,6 @@ def rollup_campaign_data(df):
         "segment_date": "last",
         "campaign_start_date": "first",
         "campaign_end_date": "first",
-        "source": "first",
         "cost": "sum",
     }
     optional_columns = ["country", "app_language"]
