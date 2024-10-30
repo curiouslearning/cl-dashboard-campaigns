@@ -16,16 +16,21 @@ df_campaign_users = st.session_state["df_campaign_users"]
 df_campaigns_rollup = st.session_state["df_campaigns_rollup"]
 
 sources = df_campaign_users.source.unique()
+
 col1, col2 = st.columns([1,4])
 selected_source = col1.selectbox(label="Select a Source",options=sources,index=None)
+
 df_users_filtered = df_campaign_users.loc[df_campaign_users['source'] == selected_source]
 
 LR = len(df_users_filtered)
 col1.metric(label="Learners Reached", value=prettify(int(LR)))
-result_df = df_users_filtered.groupby('campaign_id').size().reset_index(name='LR')
 
-result = result_df.merge(df_campaigns_rollup, on='campaign_id', how='left')
+# Add LR to each campaign by counting the total rows after the filter
+df_users_filtered = df_users_filtered.groupby('campaign_id').size().reset_index(name='LR')
+
+df_users_filtered = df_users_filtered.merge(df_campaigns_rollup, on='campaign_id', how='left')
+df_users_filtered.drop('cost', axis=1, inplace=True)
 
 keys = [12, 13, 14, 15, 16]
-if (len(result)) > 0:
-    ui.paginated_dataframe(result,keys=keys)
+if (len(df_users_filtered)) > 0:
+    ui.paginated_dataframe(df_users_filtered,keys=keys)
