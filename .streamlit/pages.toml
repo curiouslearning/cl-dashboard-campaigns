@@ -1,6 +1,6 @@
 
 [[pages]]
-path = "Home.py"
+path = "home.py"
 name = "Campaign Funnel Dashboard"
 icon = ":star2:"
 
