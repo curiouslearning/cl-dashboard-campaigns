@@ -18,11 +18,15 @@ df_campaigns_rollup = st.session_state["df_campaigns_rollup"]
 sources = df_campaign_users.source.unique()
 
 col1, col2 = st.columns([1,4])
+df_users_filtered = df_campaign_users
 selected_source = col1.selectbox(label="Select a Source",options=sources,index=None)
 
-df_users_filtered = df_campaign_users.loc[df_campaign_users['source'] == selected_source]
+
+if selected_source != None:
+    df_users_filtered = df_campaign_users.loc[df_campaign_users['source'] == selected_source]
 
 LR = len(df_users_filtered)
+
 col1.metric(label="Learners Reached", value=prettify(int(LR)))
 
 # Add LR to each campaign by counting the total rows after the filter
