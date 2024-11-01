@@ -43,13 +43,18 @@ with col1:
     selected_date, option = ui.calendar_selector(key="fa-3", index=1, placement="middle")
     daterange = ui.convert_date_to_range(selected_date, option)
 
+    sources = df_campaign_users.source.unique()
+    selected_source = col1.selectbox(label="Select a Source",options=sources,index=None)
+
 # Define query conditions for campaign users
 user_conditions = [f"@daterange[0] <= event_date <= @daterange[1]"]
 if countries_list[0] != "All":
     user_conditions.append("country.isin(@countries_list)")
 if language[0] != "All":
     user_conditions.append("app_language == @language")
-
+if selected_source is not None:
+    user_conditions.append("source == @selected_source")
+    
 # Apply query to filter campaign users
 user_query = " and ".join(user_conditions)
 df_users_filtered = df_campaign_users.query(user_query)
@@ -59,7 +64,11 @@ LR = len(df_users_filtered)
 col1.metric(label="Learners Reached", value=prettify(int(LR)))
 
 # Group filtered users by campaign
-df_users_filtered = df_users_filtered.groupby("campaign_id").size().reset_index(name="LR")
+df_users_filtered = df_users_filtered.groupby("campaign_id").agg({
+    'country': 'first',
+    'app_language': 'first',
+    'user_pseudo_id': 'size'  # the column that represents the count for "LR"
+}).rename(columns={'user_pseudo_id': 'LR'}).reset_index()
 
 # Define query conditions for campaigns
 campaign_conditions = [f"@daterange[0] <= segment_date <= @daterange[1]"]
@@ -74,7 +83,9 @@ df_campaigns_filtered = df_campaigns_all.query(campaign_query)
 
 # Roll up campaign data and merge with filtered users
 df_campaigns_rollup = campaigns.rollup_campaign_data(df_campaigns_filtered)
+
 df_table = df_users_filtered.merge(df_campaigns_rollup, on="campaign_id", how="left")
+
 if not df_table.empty:
     df_table["LRC"] = np.where(df_table["LR"] != 0, (df_table["cost"] / df_table["LR"]).round(2), 0)
     new_order = ['campaign_id', 'campaign_name', 'LR', "cost","LRC","country","app_language"]
