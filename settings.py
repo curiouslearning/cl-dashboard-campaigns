@@ -49,24 +49,16 @@ def initialize():
     if "bq_client" not in st.session_state:
         st.session_state["bq_client"] = bq_client
 
-def init_user_list():
-   
-    df_campaign_users = cache_users_list()
-
-    if "df_campaign_users" not in st.session_state:
-        st.session_state["df_campaign_users"] = df_campaign_users
-
 
 # Get the campaign data from BigQuery, roll it up per campaign
-def init_campaign_data():
+def init_data():
 # Call the combined asynchronous campaign data function
-    df_google_ads_data, df_facebook_ads_data = cache_marketing_data()
+    df_campaign_users, df_google_ads_data, df_facebook_ads_data = cache_marketing_data()
 
     #Get all campaign data by segment_date
     df_campaigns_all = pd.concat([df_google_ads_data, df_facebook_ads_data])
     df_campaigns_all = campaigns.add_country_and_language(df_campaigns_all)
     df_campaigns_all = df_campaigns_all.reset_index(drop=True)
-
     df_campaigns_rollup = campaigns.rollup_campaign_data(df_campaigns_all)
 
     if "df_campaigns_rollup" not in st.session_state:
@@ -74,16 +66,14 @@ def init_campaign_data():
 
     if "df_campaigns_all" not in st.session_state:
         st.session_state["df_campaigns_all"] = df_campaigns_all
+    
+    if "df_campaign_users" not in st.session_state:
+        st.session_state["df_campaign_users"] = df_campaign_users
 
-@st.cache_data(ttl="1d", show_spinner="Gathering Marketing Data")
+@st.cache_data(ttl="1d", show_spinner="Loading Data")
 def cache_marketing_data():
     # Execute the async function and return its result synchronously
     return asyncio.run(campaigns.get_campaign_data())
 
-
-@st.cache_data(ttl="1d", show_spinner="Gathering User List")
-def cache_users_list():
-    # Execute the async function and return its result synchronously
-    return asyncio.run(users.get_users_list())
 
 
