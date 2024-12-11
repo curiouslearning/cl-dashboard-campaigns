@@ -15,7 +15,7 @@ settings.init_data()
 default_daterange = [dt.datetime(2024, 9, 9).date(), dt.date.today()]
 
 # Load data from session state
-df_campaign_users = st.session_state["df_campaign_users"]
+campaign_users_app_launch = st.session_state["campaign_users_app_launch"]
 df_campaigns_all = st.session_state["df_campaigns_all"]
 df_campaigns_rollup = campaigns.rollup_campaign_data(df_campaigns_all)
 df_campaign_names = df_campaigns_rollup[['campaign_id', 'campaign_name']]
@@ -45,8 +45,9 @@ with col1:
     selected_date, option = ui.calendar_selector(key="fa-3", index=1, placement="middle")
     daterange = ui.convert_date_to_range(selected_date, option)
 
-    sources = df_campaign_users.source.unique()
-    selected_source = col1.selectbox(label="Select a Source",options=sources,index=None)
+    source_ids = campaign_users_app_launch.source_id.unique()
+    selected_source = col1.selectbox(
+        label="Select a Source", options=source_ids, index=None)
 
 # Define query conditions for campaign users
 user_conditions = [f"@daterange[0] <= event_date <= @daterange[1]"]
@@ -55,11 +56,11 @@ if countries_list[0] != "All":
 if language[0] != "All":
     user_conditions.append("app_language == @language")
 if selected_source is not None:
-    user_conditions.append("source == @selected_source")
+    user_conditions.append("source_id == @selected_source")
     
 # Apply query to filter campaign users
 user_query = " and ".join(user_conditions)
-df_users_filtered = df_campaign_users.query(user_query)
+df_users_filtered = campaign_users_app_launch.query(user_query)
 LR = len(df_users_filtered)
 
 # Display Learners Reached metric

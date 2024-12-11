@@ -3,9 +3,10 @@ import pandas as pd
 from rich import print as print
 import asyncio
 from pyinstrument import Profiler
+import users
 
-start_date = '2024-09-11'
-sources_to_remove = ['testingSource','DSS-Botswana']
+start_date = '2024-11-08'
+
 # Proper UTM parameter data was implemented on the marketing side and in the CR production 
 
 async def get_campaign_data():
@@ -44,15 +45,21 @@ async def get_campaign_data():
             ORDER BY d.data_date_start DESC;
         """
 
-        sql_campaign_users = f"""
+        sql_campaign_users_app_launch = f"""
             SELECT *
             FROM `dataexploration-193817.user_data.cr_app_launch_campaign_data`
          """
-        
+
+        sql_campaign_users_progress = f"""
+            SELECT *
+            FROM `dataexploration-193817.user_data.cr_user_progress_campaign_data`
+         """
+
 
         # Run both queries concurrently using asyncio.gather
-        campaign_users,google_ads_data, facebook_ads_data = await asyncio.gather(
-            run_query(sql_campaign_users),
+        campaign_users_progress, campaign_users_app_launch, google_ads_data, facebook_ads_data = await asyncio.gather(
+            run_query(sql_campaign_users_progress),
+            run_query(sql_campaign_users_app_launch),
             run_query(google_ads_query),
             run_query(facebook_ads_query)
         )
@@ -62,26 +69,10 @@ async def get_campaign_data():
         google_ads_data["cost"] = google_ads_data["cost"].divide(1000000).round(2)
         google_ads_data["segment_date"] = pd.to_datetime(google_ads_data["segment_date"])
 
-        # Eliminate duplicate cr users (multiple language combinations) - just keep the first one
-        campaign_users = campaign_users.drop_duplicates(subset='user_pseudo_id', keep="first")
-        campaign_users["event_date"] = pd.to_datetime(campaign_users["event_date"], errors='coerce')
-        campaign_users["event_date"] = campaign_users["event_date"].dt.date
-
-        # Fix data typos
-        campaign_users["app_language"] = campaign_users["app_language"].replace(
-            "ukranian", "ukrainian"
-        )
-        campaign_users["app_language"] = campaign_users["app_language"].replace(
-            "malgache", "malagasy"
-        )
-
-    #Remove garbage sources
-    campaign_users = campaign_users[~campaign_users['source'].isin(sources_to_remove)]
-
-
-
+    campaign_users_app_launch = users.cleanup_users(campaign_users_app_launch)
+    campaign_users_progress = users.cleanup_users(campaign_users_progress)
     p.print(color="red")
-    return campaign_users, google_ads_data , facebook_ads_data
+    return campaign_users_progress,campaign_users_app_launch, google_ads_data, facebook_ads_data
 
 @st.cache_data(ttl="1d", show_spinner=False)
 # Looks for the string following the dash and makes that the associated country.

@@ -3,6 +3,7 @@ import pandas as pd
 from rich import print as print
 import numpy as np
 
+sources_to_remove = ['testingSource', 'DSS-Botswana']
 
 @st.cache_data(ttl="1d", show_spinner=False)
 def get_language_list():
@@ -46,3 +47,26 @@ def get_country_list():
         countries_list = np.array(df.values).flatten().tolist()
     return countries_list
 
+def cleanup_users(df):
+            # Eliminate duplicate cr users (multiple language combinations) - just keep the first one
+    df = df.drop_duplicates(
+            subset='user_pseudo_id', keep="first")
+    df["event_date"] = pd.to_datetime(
+        df["event_date"], errors='coerce')
+    df["event_date"] = df["event_date"].dt.date
+
+        # Fix data typos
+    df["app_language"] = df["app_language"].replace(
+            "ukranian", "ukrainian"
+        )
+    df["app_language"] = df["app_language"].replace(
+            "malgache", "malagasy"
+        )
+
+    # Remove garbage sources
+    df = df[
+        ~df['source_id'].isin(sources_to_remove) &
+        ~df['source_id'].str.startswith('test', na=False)
+]
+
+    return df
