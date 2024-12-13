@@ -5,6 +5,7 @@ import asyncio
 from pyinstrument import Profiler
 import users
 
+#Event data started getting the campaign metadata in production on this date
 start_date = '2024-11-08'
 
 # Proper UTM parameter data was implemented on the marketing side and in the CR production 

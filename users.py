@@ -48,7 +48,7 @@ def get_country_list():
     return countries_list
 
 def cleanup_users(df):
-            # Eliminate duplicate cr users (multiple language combinations) - just keep the first one
+    # Eliminate duplicate cr users (multiple language combinations) - just keep the first one
     df = df.drop_duplicates(
             subset='user_pseudo_id', keep="first")
     df["event_date"] = pd.to_datetime(

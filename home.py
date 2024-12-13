@@ -7,6 +7,7 @@ from millify import prettify
 import ui_widgets as ui
 import users
 import numpy as np
+import metrics
 
 settings.initialize()
 settings.init_data()
@@ -34,7 +35,7 @@ with col1:
     )
     if not countries_list:  # If the user unselects all, default to 'All'
         countries_list = ["All"]
-
+with col2:
     # Language selection
     languages = users.get_language_list()
     language = ui.single_selector(
@@ -49,22 +50,19 @@ with col1:
     selected_source = col1.selectbox(
         label="Select a Source", options=source_ids, index=None)
 
-# Define query conditions for campaign users
-user_conditions = [f"@daterange[0] <= event_date <= @daterange[1]"]
-if countries_list[0] != "All":
-    user_conditions.append("country.isin(@countries_list)")
-if language[0] != "All":
-    user_conditions.append("app_language == @language")
-if selected_source is not None:
-    user_conditions.append("source_id == @selected_source")
-    
-# Apply query to filter campaign users
-user_query = " and ".join(user_conditions)
-df_users_filtered = campaign_users_app_launch.query(user_query)
-LR = len(df_users_filtered)
+df_users_filtered = metrics.filter_user_data(daterange=daterange,countries_list=countries_list,stat="LR",language=language,source_id=selected_source)
 
-# Display Learners Reached metric
+LR = metrics.get_totals_by_metric(
+    daterange, countries_list, stat="LR",  language=language, source_id=selected_source
+)
+
+LA = metrics.get_totals_by_metric(
+    daterange, countries_list, stat="LA",  language=language, source_id=selected_source
+)
+
+
 col1.metric(label="Learners Reached", value=prettify(int(LR)))
+col2.metric(label="Learners Acquired", value=prettify(int(LA)))
 
 # Group filtered users by campaign
 df_users_filtered = df_users_filtered.groupby("campaign_id").agg({
