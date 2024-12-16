@@ -12,6 +12,13 @@ import metrics
 settings.initialize()
 settings.init_data()
 
+st.markdown(
+    """
+    :green-background[NOTE:]
+    :pink[** Campaign data added to events starting 11-08-2024.  This dashboard ony reflects data from that date forward]
+    """
+)
+
 # Define default date range
 default_daterange = [dt.datetime(2024, 9, 9).date(), dt.date.today()]
 
@@ -22,10 +29,31 @@ df_campaigns_rollup = campaigns.rollup_campaign_data(df_campaigns_all)
 df_campaign_names = df_campaigns_rollup[['campaign_id', 'campaign_name']]
 
 # Define layout columns
-col1, col2 = st.columns(2, gap="large")
+col1, col2, col3 = st.columns([1,1,1], gap="large")
 
 with col1:
+    st.subheader("Source Cohort")
     # Country selection
+    source_ids = campaign_users_app_launch.source_id.unique()
+    selected_source = st.selectbox(
+        label="Select a Source", options=source_ids, index=None)
+    
+    # Date range selection
+    st.write("Date subset")
+    selected_date, option = ui.calendar_selector(
+        key="fa-3", index=1, placement="middle")
+    daterange = ui.convert_date_to_range(selected_date, option)
+    start = daterange[0].strftime("%b %d, %Y")
+    end = daterange[1].strftime("%b %d, %Y")
+    st.write("Timerange: " + start + " to " + end)
+    
+with col2:
+    st.subheader("")
+    # Language selection
+    languages = users.get_language_list()
+    language = ui.single_selector(
+        languages, title="Select a language", key="a-2", placement="middle"
+    )
     countries_list = users.get_country_list()
     countries_list = ui.multi_select_all(
         countries_list,
@@ -35,34 +63,32 @@ with col1:
     )
     if not countries_list:  # If the user unselects all, default to 'All'
         countries_list = ["All"]
-with col2:
-    # Language selection
-    languages = users.get_language_list()
-    language = ui.single_selector(
-        languages, title="Select a language", key="a-2", placement="middle"
-    )
 
-    # Date range selection
-    selected_date, option = ui.calendar_selector(key="fa-3", index=1, placement="middle")
-    daterange = ui.convert_date_to_range(selected_date, option)
+#select a date cohort of users to track        
+df_user_cohort = metrics.filter_user_data(
+        daterange=daterange, countries_list=countries_list, stat="LR", language=languages)
 
-    source_ids = campaign_users_app_launch.source_id.unique()
-    selected_source = col1.selectbox(
-        label="Select a Source", options=source_ids, index=None)
+user_cohort_list = df_user_cohort["cr_user_id"]
 
-df_users_filtered = metrics.filter_user_data(daterange=daterange,countries_list=countries_list,stat="LR",language=language,source_id=selected_source)
+# track those users up until today
+today = dt.datetime.now().date()
+daterange = [daterange[0], today]
+df_users_filtered = metrics.filter_user_data(daterange=daterange, countries_list=countries_list,
+                              stat="LR", language=languages, user_list=user_cohort_list)
 
 LR = metrics.get_totals_by_metric(
-    daterange, countries_list, stat="LR",  language=language, source_id=selected_source
+    daterange, countries_list, stat="LR",  language=language, source_id=selected_source,user_list=user_cohort_list
 )
 
 LA = metrics.get_totals_by_metric(
-    daterange, countries_list, stat="LA",  language=language, source_id=selected_source
+    daterange, countries_list, stat="LA",  language=language, source_id=selected_source, user_list=user_cohort_list
 )
 
+with col3:
+    st.subheader("")
 
-col1.metric(label="Learners Reached", value=prettify(int(LR)))
-col2.metric(label="Learners Acquired", value=prettify(int(LA)))
+    st.metric(label="Learners Reached", value=prettify(int(LR)))
+    st.metric(label="Learners Acquired", value=prettify(int(LA)))
 
 # Group filtered users by campaign
 df_users_filtered = df_users_filtered.groupby("campaign_id").agg({

@@ -16,7 +16,7 @@ def filter_user_data(
     countries_list=["All"],
     stat="LR",
     language=["All"],
-    user_list=[],
+    user_list=None,
     source_id=None
 ):
 
@@ -62,7 +62,7 @@ def filter_user_data(
     df = df.loc[mask]
 
     # If user list subset was passed in, filter on that as well
-    if (len(user_list) > 0):
+    if user_list is not None:
         df = df[df["cr_user_id"].isin(user_list)]
     return df
 
@@ -83,7 +83,6 @@ def get_totals_by_metric(
     df_user_list = filter_user_data(
         daterange, countries_list, stat,  language=language, user_list=user_list,source_id=source_id
     )
-
 
     if stat not in ["DC", "TS", "SL", "PC", "LA"]:
         return len(df_user_list)  # All LR or FO
