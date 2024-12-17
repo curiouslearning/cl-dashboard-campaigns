@@ -23,6 +23,7 @@ st.markdown(
 # Define default date range
 default_daterange = [dt.datetime(2024, 9, 9).date(), dt.date.today()]
 
+
 # Load data from session state
 campaign_users_app_launch = st.session_state["campaign_users_app_launch"]
 df_campaigns_all = st.session_state["df_campaigns_all"]
@@ -127,19 +128,23 @@ df_table['campaign_name'] = df_table['campaign_name'].fillna(df_table['campaign_
 # Drop extra columns after filling values
 df_table = df_table.drop(columns=['country_campaign', 'app_language_campaign', 'campaign_name_lookup'])
 
-# Calculate 'LRC' if table is not empty
-if not df_table.empty:
-    df_table["LRC"] = np.where(df_table["LR"] != 0, (df_table["cost"] / df_table["LR"]).round(2), 0)
-    
-    # Reorder columns for final output
-    final_columns = ['campaign_id', 'campaign_name', 'LR', "cost", "LRC", "country", "app_language"]
-    df_table = df_table[final_columns]
-    
-    # Display the paginated dataframe
-    ui.paginated_dataframe(df_table, keys=[1, 2, 3, 4, 5])
-else:
-    st.write("No data")
+tab1, tab2 = st.tabs(["Data Table", "CR Funnel"])
+with tab1:
+    st.header("Data Table")
+    # Calculate 'LRC' if table is not empty
+    if not df_table.empty:
+        df_table["LRC"] = np.where(df_table["LR"] != 0, (df_table["cost"] / df_table["LR"]).round(2), 0)
+        
+        # Reorder columns for final output
+        final_columns = ['campaign_id', 'campaign_name', 'LR', "cost", "LRC", "country", "app_language"]
+        df_table = df_table[final_columns]
+        
+        # Display the paginated dataframe
+        ui.paginated_dataframe(df_table, keys=[1, 2, 3, 4, 5])
+    else:
+        st.write("No data")
 
 st.divider()
-
-uic.create_funnels(selected_source=selected_source,countries_list=countries_list,key_prefix="123",daterange=daterange,languages=language,user_list=user_cohort_list,display_FO=False)
+with tab2:
+    st.header("Curious Reader Funnel")
+    uic.create_funnels(selected_source=selected_source,countries_list=countries_list,key_prefix="123",daterange=daterange,languages=language,user_list=user_cohort_list,display_FO=False)
