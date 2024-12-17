@@ -8,6 +8,7 @@ import ui_widgets as ui
 import users
 import numpy as np
 import metrics
+import ui_components as uic
 
 settings.initialize()
 settings.init_data()
@@ -74,7 +75,7 @@ user_cohort_list = df_user_cohort["cr_user_id"]
 today = dt.datetime.now().date()
 daterange = [daterange[0], today]
 df_users_filtered = metrics.filter_user_data(daterange=daterange, countries_list=countries_list,
-                              stat="LR", language=languages, user_list=user_cohort_list)
+                              stat="LR", language=languages, user_list=user_cohort_list,source_id=selected_source)
 
 LR = metrics.get_totals_by_metric(
     daterange, countries_list, stat="LR",  language=language, source_id=selected_source,user_list=user_cohort_list
@@ -139,3 +140,6 @@ if not df_table.empty:
 else:
     st.write("No data")
 
+st.divider()
+
+uic.create_funnels(selected_source=selected_source,countries_list=countries_list,key_prefix="123",daterange=daterange,languages=language,user_list=user_cohort_list,display_FO=False)
