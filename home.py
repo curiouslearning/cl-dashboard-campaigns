@@ -15,14 +15,13 @@ settings.init_data()
 
 st.markdown(
     """
-    :green-background[NOTE:]
-    :pink[** Campaign data added to events starting 11-08-2024.  This dashboard ony reflects data from that date forward]
+    :blue-background[NOTE:]
+    :orange[ Campaign data added to events starting 11-08-2024.  This dashboard ony reflects data from that date forward]
     """
 )
 
 # Define default date range
-default_daterange = [dt.datetime(2024, 9, 9).date(), dt.date.today()]
-
+default_daterange = [dt.datetime(2024, 11, 8).date(), dt.date.today()]
 
 # Load data from session state
 campaign_users_app_launch = st.session_state["campaign_users_app_launch"]
@@ -38,13 +37,16 @@ with col1:
     # Country selection
     source_ids = campaign_users_app_launch.source_id.unique()
     selected_source = st.selectbox(
-        label="Select a Source", options=source_ids, index=None)
+        label="Select a Source", options=source_ids, index=None,key="home-1")
     
     # Date range selection
     st.write("Date subset")
     selected_date, option = ui.calendar_selector(
         key="fa-3", index=1, placement="middle")
     daterange = ui.convert_date_to_range(selected_date, option)
+    if daterange[0] < default_daterange[0]:
+        daterange[0] = default_daterange[0]
+
     start = daterange[0].strftime("%b %d, %Y")
     end = daterange[1].strftime("%b %d, %Y")
     st.write("Timerange: " + start + " to " + end)
