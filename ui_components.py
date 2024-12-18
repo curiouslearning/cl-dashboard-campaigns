@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import metrics
 from millify import prettify
 import ui_widgets as ui
+import pandas as pd
 
 
 default_daterange = [dt.datetime(2024, 11, 8).date(), dt.date.today()]
@@ -113,3 +114,37 @@ def create_funnels(selected_source,
 
         fig = create_engagement_figure(funnel_data, key=f"{key_prefix}-5")
         st.plotly_chart(fig, use_container_width=True,key=f"{key_prefix}-6")
+
+
+@st.cache_data(ttl="1d", show_spinner=False)
+def  unattributed_events_line_chart(df):
+
+    # Convert the column to date only (remove timestamp)
+    df['event_date'] = pd.to_datetime(df['event_date'], format='%Y%m%d')
+
+    # Extract just the date part
+    df['event_date'] = df['event_date'].dt.date
+
+    grouped = df.groupby('event_date').count().reset_index()
+    fig = go.Figure()
+
+    day_counts = df.groupby("event_date").size().reset_index(name="count")
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=day_counts["event_date"],
+        y=day_counts["count"],
+        mode="lines+markers",
+        name="Count per Day"
+    ))
+
+    # Customize layout
+    fig.update_layout(
+        title="Number of Rows Per Day",
+        xaxis_title="Day",
+        yaxis_title="Number of Rows",
+        template="plotly"
+    )
+    # Plotly chart and data display
+    st.plotly_chart(fig, use_container_width=True)

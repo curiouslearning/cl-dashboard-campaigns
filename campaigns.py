@@ -58,9 +58,16 @@ async def get_campaign_data():
             WHERE first_open >= '{start_date}'
          """
 
+        sql_unattributed_app_launch_events = f"""
+            SELECT *
+            FROM `dataexploration-193817.user_data.unattributed_app_launch_events`
+         """
+
+
 
         # Run both queries concurrently using asyncio.gather
-        campaign_users_progress, campaign_users_app_launch, google_ads_data, facebook_ads_data = await asyncio.gather(
+        unattributed_app_launch_events,campaign_users_progress, campaign_users_app_launch, google_ads_data, facebook_ads_data = await asyncio.gather(
+            run_query(sql_unattributed_app_launch_events),
             run_query(sql_campaign_users_progress),
             run_query(sql_campaign_users_app_launch),
             run_query(google_ads_query),
@@ -75,7 +82,7 @@ async def get_campaign_data():
     campaign_users_app_launch = users.cleanup_users(campaign_users_app_launch)
     campaign_users_progress = users.cleanup_users(campaign_users_progress)
     p.print(color="red")
-    return campaign_users_progress,campaign_users_app_launch, google_ads_data, facebook_ads_data
+    return unattributed_app_launch_events,campaign_users_progress, campaign_users_app_launch, google_ads_data, facebook_ads_data
 
 @st.cache_data(ttl="1d", show_spinner=False)
 # Looks for the string following the dash and makes that the associated country.

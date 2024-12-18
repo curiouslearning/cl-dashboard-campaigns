@@ -28,6 +28,7 @@ campaign_users_app_launch = st.session_state["campaign_users_app_launch"]
 df_campaigns_all = st.session_state["df_campaigns_all"]
 df_campaigns_rollup = campaigns.rollup_campaign_data(df_campaigns_all)
 df_campaign_names = df_campaigns_rollup[['campaign_id', 'campaign_name']]
+df_unattributed_app_launch_events = st.session_state["df_unattributed_app_launch_events"]
 
 # Define layout columns
 col1, col2, col3 = st.columns([1,1,1], gap="large")
@@ -130,7 +131,7 @@ df_table['campaign_name'] = df_table['campaign_name'].fillna(df_table['campaign_
 # Drop extra columns after filling values
 df_table = df_table.drop(columns=['country_campaign', 'app_language_campaign', 'campaign_name_lookup'])
 
-tab1, tab2 = st.tabs(["Data Table", "CR Funnel"])
+tab1, tab2, tab3 = st.tabs(["Data Table", "CR Funnel", "Unattributed Events"])
 with tab1:
     st.header("Data Table")
     # Calculate 'LRC' if table is not empty
@@ -150,3 +151,7 @@ st.divider()
 with tab2:
     st.header("Curious Reader Funnel")
     uic.create_funnels(selected_source=selected_source,countries_list=countries_list,key_prefix="123",daterange=daterange,languages=language,user_list=user_cohort_list,display_FO=False)
+    
+with tab3:
+    st.header("Unattributed Events")
+    uic.unattributed_events_line_chart(df_unattributed_app_launch_events)

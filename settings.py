@@ -53,7 +53,7 @@ def initialize():
 # Get the campaign data from BigQuery, roll it up per campaign
 def init_data():
 # Call the combined asynchronous campaign data function
-    campaign_users_progress,campaign_users_app_launch, df_google_ads_data, df_facebook_ads_data = cache_marketing_data()
+    df_unattributed_app_launch_events,campaign_users_progress, campaign_users_app_launch, df_google_ads_data, df_facebook_ads_data = cache_marketing_data()
 
     #Get all campaign data by segment_date
     df_campaigns_all = pd.concat([df_google_ads_data, df_facebook_ads_data])
@@ -72,6 +72,10 @@ def init_data():
 
     if "campaign_users_progress" not in st.session_state:
         st.session_state["campaign_users_progress"] = campaign_users_progress
+
+    if "df_unattributed_app_launch_events" not in st.session_state:
+        st.session_state["df_unattributed_app_launch_events"] = df_unattributed_app_launch_events
+
 
 @st.cache_data(ttl="1d", show_spinner="Loading Data")
 def cache_marketing_data():
