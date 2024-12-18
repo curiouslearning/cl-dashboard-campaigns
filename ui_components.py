@@ -118,25 +118,23 @@ def create_funnels(selected_source,
 
 @st.cache_data(ttl="1d", show_spinner=False)
 def  unattributed_events_line_chart(df):
+    df["formatted_date"] = pd.to_datetime(
+       df["event_date"], format="%Y%m%d").dt.strftime("%Y-%m-%d")
 
-    # Convert the column to date only (remove timestamp)
-    df['event_date'] = pd.to_datetime(df['event_date'], format='%Y%m%d')
-
-    # Extract just the date part
-    df['event_date'] = df['event_date'].dt.date
-
-    grouped = df.groupby('event_date').count().reset_index()
-    fig = go.Figure()
-
-    day_counts = df.groupby("event_date").size().reset_index(name="count")
+     # Format event_count with commas
+    df["formatted_event_count"] = df["event_count"].apply(lambda x: f"{x:,}")
 
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=day_counts["event_date"],
-        y=day_counts["count"],
+        x=df["event_date"],
+        y=df["event_count"],
         mode="lines+markers",
-        name="Count per Day"
+        name="Count per Day",
+        text=df.apply(lambda row: f"Date: {row['formatted_date']}<br>Event Count: {
+                      row['formatted_event_count']}", axis=1),
+        hoverinfo="text"  # Use the formatted text for hover
+
     ))
 
     # Customize layout
