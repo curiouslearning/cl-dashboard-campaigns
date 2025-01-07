@@ -3,117 +3,11 @@ import pandas as pd
 import datetime as dt
 from rich import print
 from dateutil.relativedelta import relativedelta
-import users
 import calendar
 import re
 from streamlit_option_menu import option_menu
 
-level_definitions = pd.DataFrame(
-    [
-        [
-            "FO",
-            "First Open",
-            "The first time Curious Reader is opened from the play store",
-       ],
-        [
-            "LR",
-            "Learner Reached",
-            "The number of users that downloaded and opened the app",
-       ],
-        [
-            "PC",
-            "Puzzle Complete / Drgged a Stone",
-            "The number of users that have completed at least one puzzle",
-        ],
-        [
-            "LA",
-            "Learner Acquisition",
-            "The number of users that have completed at least one FTM level.",
-        ],        [
-            "RA",
-            "Reader Acquired",
-            "The number of users that have completed at least 25 levels",
-        ],
-        [
-            "GPP",
-            "Game Progress Percent",
-            "The percentage of FTM levels completed from total levels",
-            "Max Level Reached / Total Levels",
-        ],
-        [
-            "GCA",
-            "Game Completion Average",
-            "The percentage of FTM learners acquired who have completed the game",
-            "Learners wh completed 90% of the levels / Total learners",
-        ],
-        [
-            "LAC",
-            "Learner Acquisition Cost",
-            "The cost (USD) of acquiring one learner.",
-            "Total Spend / LA",
-        ],
-    ],
-    columns=["Acronym", "Name", "Definition", "Formula"],
-)
-level_percent_definitions = pd.DataFrame(
-    [
-        [
-            "DC over LR",
-            "Downloads Completed divided by Learners Reached",
-        ],
-        [
-            "TS over LR",
-            "Tapped Start divided by Learners Reached",
-        ],
-        [
-            "SL over LR",
-            "Selected Level divided by Learners Reached",
-        ],
-        [
-            "PC over LR",
-            "Puzzle Completed divided by Learners Reached",
-        ],
-        [
-            "LA over LR",
-            "Learner Acquired (Level completed) divided by Learners Reached",
-        ],
-        [
-            "GC over LR",
-            "Game Complted divided by Learners Reached",
-        ],
-    ],
-    columns=["Name", "Definition"],
-)
-
-data_notes = pd.DataFrame(
-    [
-        [
-            "Curious Reader LR",
-            "The first event where we have an associated language in Curious Reader is the app_launch event so this is the chosen event for LR in Curious Reader",
-        ],
-        [
-            "Curious Reader LR",
-            "Individual users may have multiple languages or countries so we select their entry with the furthest progress and eliminate their other entries",
-        ],
-    ],
-    columns=["Note", "Description"],
-)
-
-
-
-def display_definitions_table(title,def_df):
-    expander = st.expander(title)
-    # CSS to inject contained in a string
-    hide_table_row_index = """
-                <style>
-                thead tr th:first-child {display:none}
-                tbody th {display:none}
-                </style>
-                """
-    # Inject CSS with Markdown
-    st.markdown(hide_table_row_index, unsafe_allow_html=True)
-    expander.table(def_df)
-
+min_date = dt.date(2024, 11, 8)
 
 def month_selector(placement="side", key=""):
     from calendar import month_abbr
@@ -157,7 +51,7 @@ def custom_date_selection_slider():
 
     date_range = st.sidebar.slider(
         label="Select Range:",
-        min_value=dt.date(2021, 1, 1),
+        min_value=min_date,
         value=(last_year, today),
         max_value=today,
     )
@@ -183,7 +77,7 @@ def convert_date_to_range(selected_date, option):
         last = dt.date(selected_date, 12, 31)
         return [first, last]
     elif option == "All time":
-        return [dt.datetime(2021, 1, 1).date(), dt.date.today()]
+        return [min_date, dt.date.today()]
     elif option == "Select month":
         month = selected_date[0]
         year = selected_date[1]

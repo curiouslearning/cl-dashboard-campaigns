@@ -43,7 +43,7 @@ with col1:
     # Date range selection
     st.write("Date subset")
     selected_date, option = ui.calendar_selector(
-        key="fa-3", index=1, placement="middle")
+        key="fa-3", index=0, placement="middle")
     daterange = ui.convert_date_to_range(selected_date, option)
     if daterange[0] < default_daterange[0]:
         daterange[0] = default_daterange[0]
