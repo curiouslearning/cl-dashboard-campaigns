@@ -60,7 +60,7 @@ async def get_campaign_data():
 
         sql_unattributed_app_launch_events = f"""
             SELECT *
-            FROM `dataexploration-193817.user_data.unattributed_event_counts`
+            FROM `dataexploration-193817.user_data.unattributed_app_launch_events`
             WHERE event_date >= '{start_date}'
          """
 

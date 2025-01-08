@@ -130,3 +130,16 @@ def get_totals_by_metric(
 
         if stat == "LA":
             return level_completed_count
+
+
+def remove_duplicates(df1, df2, column_name):
+    # Extract unique values in df2's column
+    df2_values = df2[column_name].unique()
+
+    # Filter out rows in df1 where column matches any value in df2
+    filtered_df = df1[~df1[column_name].isin(df2_values)]
+
+    return filtered_df
+
+
+    

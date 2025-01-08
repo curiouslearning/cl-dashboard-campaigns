@@ -117,24 +117,56 @@ def create_funnels(selected_source,
 
 
 @st.cache_data(ttl="1d", show_spinner=False)
-def  unattributed_events_line_chart(df):
-    df["formatted_date"] = pd.to_datetime(
-       df["event_date"], format="%Y%m%d").dt.strftime("%Y-%m-%d")
+def unattributed_events_line_chart(unattributed_df):
+    attributed_df = st.session_state.campaign_users_app_launch
 
-     # Format event_count with commas
-    df["formatted_event_count"] = df["event_count"].apply(lambda x: f"{x:,}")
+    #Group and format 
+    attributed_df = attributed_df.groupby(
+        'event_date').size().reset_index(name='event_count')
+    
+    attributed_df["event_date"] = pd.to_datetime(
+        attributed_df["event_date"], format="%Y%m%d")
+    
+    unattributed_df = unattributed_df.groupby(
+        'event_date').size().reset_index(name='event_count')
 
+    unattributed_df["event_date"] = pd.to_datetime(
+        unattributed_df["event_date"], format="%Y%m%d")
+
+   
+    # Format event_count with commas for hover text
+    unattributed_df["formatted_event_count"] = unattributed_df["event_count"].apply(lambda x: f"{
+                                                                       x:,}")
+    attributed_df["formatted_event_count"] = attributed_df["event_count"].apply(
+        lambda x: f"{x:,}")
+
+    # Create the figure
     fig = go.Figure()
 
+    # Unattributed trace
     fig.add_trace(go.Scatter(
-        x=df["event_date"],
-        y=df["event_count"],
+        x=unattributed_df["event_date"],
+        y=unattributed_df["event_count"],
         mode="lines+markers",
-        name="Count per Day",
-        text=df.apply(lambda row: f"Date: {row['formatted_date']}<br>Event Count: {
-                      row['formatted_event_count']}", axis=1),
-        hoverinfo="text"  # Use the formatted text for hover
+        name="Unattributed Count per Day",
+        text=unattributed_df.apply(
+            lambda row: f"Date: {row['event_date'].strftime(
+                '%Y-%m-%d')}<br>Event Count: {row['formatted_event_count']}",
+            axis=1),
+        hoverinfo="text"
+    ))
 
+    # Attributed trace
+    fig.add_trace(go.Scatter(
+        x=attributed_df["event_date"],
+        y=attributed_df["event_count"],
+        mode="lines+markers",
+        name="Attributed Count per Day",
+        text=attributed_df.apply(
+            lambda row: f"Date: {row['event_date'].strftime(
+                '%Y-%m-%d')}<br>Event Count: {row['formatted_event_count']}",
+            axis=1),
+        hoverinfo="text"
     ))
 
     # Customize layout
@@ -142,7 +174,9 @@ def  unattributed_events_line_chart(df):
         title="Number of Rows Per Day",
         xaxis_title="Day",
         yaxis_title="Number of Rows",
+        xaxis=dict(type="date"),  # Ensure the x-axis is treated as a date
         template="plotly"
     )
-    # Plotly chart and data display
+
+    # Display the chart
     st.plotly_chart(fig, use_container_width=True)
