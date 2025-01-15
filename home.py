@@ -9,6 +9,7 @@ import users
 import numpy as np
 import metrics
 import ui_components as uic
+import pandas as pd
 
 settings.initialize()
 settings.init_data()
@@ -156,6 +157,7 @@ if len(daterange) == 2:
     with tab3:
         
         attributed_df = st.session_state.campaign_users_app_launch
+        unattributed_df = df_unattributed_app_launch_events
 
         attributed_df = metrics.filter_dataframe(df=attributed_df, countries_list=countries_list,
                                                  daterange=daterange, language=language, source_id=selected_source)

@@ -149,6 +149,9 @@ def filter_dataframe(
     language=["All"],
     source_id=None
 ):
+    
+    df["event_date"] = pd.to_datetime(
+             df["event_date"], format="%Y%m%d").dt.date
 
     # Initialize a boolean mask
     mask = (df['event_date'] >= daterange[0]) & (

@@ -129,16 +129,10 @@ def unattributed_events_line_chart(unattributed_df,
     attributed_df = attributed_df.groupby(
         'event_date').size().reset_index(name='event_count')
     
-    attributed_df["event_date"] = pd.to_datetime(
-        attributed_df["event_date"], format="%Y%m%d")
-    
     unattributed_df = unattributed_df.groupby(
         'event_date').size().reset_index(name='event_count')
 
-    unattributed_df["event_date"] = pd.to_datetime(
-        unattributed_df["event_date"], format="%Y%m%d")
 
-   
     # Format event_count with commas for hover text
     unattributed_df["formatted_event_count"] = unattributed_df["event_count"].apply(lambda x: f"{
                                                                        x:,}")
@@ -176,9 +170,9 @@ def unattributed_events_line_chart(unattributed_df,
 
     # Customize layout
     fig.update_layout(
-        title="Number of Rows Per Day",
+        title="Number of Unique Events Per Day",
         xaxis_title="Day",
-        yaxis_title="Number of Rows",
+        yaxis_title="Number of Events",
         xaxis=dict(type="date"),  # Ensure the x-axis is treated as a date
         template="plotly"
     )
