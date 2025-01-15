@@ -163,9 +163,11 @@ if len(daterange) == 2:
                                                  daterange=daterange, language=language, source_id=selected_source)
         unattributed_df = metrics.filter_dataframe(df=df_unattributed_app_launch_events, countries_list=countries_list,
                                                daterange=daterange, language=language)
+
         count = len(unattributed_df)
         st.header(f"Unattributed Learners Reached: {count}")
  
         uic.unattributed_events_line_chart(unattributed_df=unattributed_df, attributed_df=attributed_df, countries_list=countries_list,
                                            daterange=daterange, language=language, source_id=selected_source)
 
+        uic.country_pie_chart(unattributed_df)

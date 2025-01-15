@@ -4,8 +4,7 @@ from rich import print
 import plotly.graph_objects as go
 import metrics
 from millify import prettify
-import ui_widgets as ui
-import pandas as pd
+
 
 
 default_daterange = [dt.datetime(2024, 11, 8).date(), dt.date.today()]
@@ -119,10 +118,7 @@ def create_funnels(selected_source,
 @st.cache_data(ttl="1d", show_spinner=False)
 def unattributed_events_line_chart(unattributed_df,
                                    attributed_df,
-                                   daterange=default_daterange,
-                                   countries_list=["All"],
-                                   language=["All"],
-                                   source_id=None):
+                                   ):
 
 
     #Group and format 
@@ -179,3 +175,20 @@ def unattributed_events_line_chart(unattributed_df,
 
     # Display the chart
     st.plotly_chart(fig, use_container_width=True)
+    
+def country_pie_chart(df):
+    grouped_df = df.groupby(
+            'country').size().reset_index(name='count')
+
+
+    fig = go.Figure(
+             go.Pie(
+            labels=grouped_df['country'],
+            values=grouped_df['count'],
+            title='Entries by Country',
+            hole=0.3  # Optional: for a donut chart effect
+        )
+     )
+
+        # Showing the pie chart
+    fig.show()
