@@ -8,7 +8,6 @@ import users
 
 default_daterange = [dt.datetime(2024, 9, 11).date(), dt.date.today()]
 
-
 # Takes the complete user lists (cr_user_id) and filters based on input data, and returns
 # a new filtered dataset
 def filter_user_data(
@@ -142,4 +141,31 @@ def remove_duplicates(df1, df2, column_name):
     return filtered_df
 
 
-    
+# Takes a dataframe and filters according to input parameters
+def filter_dataframe(
+    df,
+    daterange=default_daterange,
+    countries_list=["All"],
+    language=["All"],
+    source_id=None
+):
+
+    # Initialize a boolean mask
+    mask = (df['event_date'] >= daterange[0]) & (
+        df['event_date'] <= daterange[1])
+
+    # Apply country filter if not "All"
+    if countries_list[0] != "All":
+        mask &= df['country'].isin(set(countries_list))
+
+    # Apply language filter if not "All" 
+    if language[0] != "All":
+        mask &= df['app_language'].isin(set(language))
+
+    if 'source_id' in df.columns and source_id is not None:
+        mask &= (df["source_id"] == source_id)
+
+    # Filter the dataframe with the combined mask
+    df = df.loc[mask]
+
+    return df

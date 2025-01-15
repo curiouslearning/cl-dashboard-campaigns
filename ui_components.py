@@ -117,8 +117,13 @@ def create_funnels(selected_source,
 
 
 @st.cache_data(ttl="1d", show_spinner=False)
-def unattributed_events_line_chart(unattributed_df):
-    attributed_df = st.session_state.campaign_users_app_launch
+def unattributed_events_line_chart(unattributed_df,
+                                   attributed_df,
+                                   daterange=default_daterange,
+                                   countries_list=["All"],
+                                   language=["All"],
+                                   source_id=None):
+
 
     #Group and format 
     attributed_df = attributed_df.groupby(

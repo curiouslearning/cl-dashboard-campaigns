@@ -154,6 +154,16 @@ if len(daterange) == 2:
                         daterange=daterange_to_today, languages=language, user_list=user_cohort_list, display_FO=False)
         
     with tab3:
-        st.header("Unattributed Events")
+        
+        attributed_df = st.session_state.campaign_users_app_launch
 
-        uic.unattributed_events_line_chart(df_unattributed_app_launch_events)
+        attributed_df = metrics.filter_dataframe(df=attributed_df, countries_list=countries_list,
+                                                 daterange=daterange, language=language, source_id=selected_source)
+        unattributed_df = metrics.filter_dataframe(df=df_unattributed_app_launch_events, countries_list=countries_list,
+                                               daterange=daterange, language=language)
+        count = len(unattributed_df)
+        st.header(f"Unattributed Learners Reached: {count}")
+ 
+        uic.unattributed_events_line_chart(unattributed_df=unattributed_df, attributed_df=attributed_df, countries_list=countries_list,
+                                           daterange=daterange, language=language, source_id=selected_source)
+
