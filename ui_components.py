@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 import datetime as dt
 from rich import print
@@ -176,19 +177,35 @@ def unattributed_events_line_chart(unattributed_df,
     # Display the chart
     st.plotly_chart(fig, use_container_width=True)
     
+
 def country_pie_chart(df):
+
+# Grouping and counting entries for each country
     grouped_df = df.groupby(
-            'country').size().reset_index(name='count')
+    'country').size().reset_index(name='count')
 
+# Calculating the total number of entries
+    total_count = grouped_df['count'].sum()
 
+# Filtering out entries with less than 1% of the total
+    grouped_df = grouped_df[grouped_df['count'] / total_count >= 0.01]
+
+# Creating a pie chart with Plotly Graph Objects
     fig = go.Figure(
-             go.Pie(
-            labels=grouped_df['country'],
-            values=grouped_df['count'],
-            title='Entries by Country',
-            hole=0.3  # Optional: for a donut chart effect
-        )
-     )
+    go.Pie(
+        labels=grouped_df['country'],
+        values=grouped_df['count'],
+        title='Entries by Country',
+        textinfo='label+percent',  # Show country names and percentage on the slices
+        hole=0.3 , # Optional: for a donut chart effect
+    )
+)
 
-        # Showing the pie chart
-    fig.show()
+
+    fig.update_layout(
+    title='Entries by Country',
+    width=600,  # Set the custom width (in pixels)
+    height=600,  # Set the custom height (in pixels)
+)
+
+    st.plotly_chart(fig, use_container_width=True)

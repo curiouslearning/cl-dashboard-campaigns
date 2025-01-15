@@ -167,7 +167,6 @@ if len(daterange) == 2:
         count = len(unattributed_df)
         st.header(f"Unattributed Learners Reached: {count}")
  
-        uic.unattributed_events_line_chart(unattributed_df=unattributed_df, attributed_df=attributed_df, countries_list=countries_list,
-                                           daterange=daterange, language=language, source_id=selected_source)
+        uic.unattributed_events_line_chart(unattributed_df=unattributed_df, attributed_df=attributed_df)
 
         uic.country_pie_chart(unattributed_df)
