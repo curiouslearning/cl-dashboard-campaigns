@@ -80,8 +80,9 @@ async def get_campaign_data():
         google_ads_data["cost"] = google_ads_data["cost"].divide(1000000).round(2)
         google_ads_data["segment_date"] = pd.to_datetime(google_ads_data["segment_date"])
 
-    campaign_users_app_launch = users.cleanup_users(campaign_users_app_launch)
-    campaign_users_progress = users.cleanup_users(campaign_users_progress)
+    campaign_users_app_launch, campaign_users_progress = users.clean_users_to_single_language(
+        campaign_users_app_launch, campaign_users_progress)
+    
     p.print(color="red")
     return unattributed_app_launch_events,campaign_users_progress, campaign_users_app_launch, google_ads_data, facebook_ads_data
 
@@ -217,3 +218,4 @@ def build_campaign_table(df, daterange):
         df.at[idx, "RA_LR %"] = RA_LR
 
     return df
+

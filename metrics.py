@@ -114,6 +114,7 @@ def get_totals_by_metric(
             )
 
         if stat == "TS":
+
             return (
                 tapped_start_count
                 + selected_level_count
@@ -122,10 +123,15 @@ def get_totals_by_metric(
             )
 
         if stat == "SL":  # all PC and SL users implicitly imply those events
-            return tapped_start_count + puzzle_completed_count + level_completed_count
+
+            return (
+                selected_level_count
+                + puzzle_completed_count
+                + level_completed_count)
 
         if stat == "PC":
-            return puzzle_completed_count + level_completed_count
+            return (puzzle_completed_count 
+                    + level_completed_count)
 
         if stat == "LA":
             return level_completed_count

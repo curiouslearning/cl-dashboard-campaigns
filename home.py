@@ -9,7 +9,7 @@ import users
 import numpy as np
 import metrics
 import ui_components as uic
-import pandas as pd
+
 
 settings.initialize()
 settings.init_data()

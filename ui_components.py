@@ -58,18 +58,35 @@ def create_funnels(selected_source,
                    display_FO=True):
     
     statsA = ["FO", "LR","DC", "TS","SL",  "PC", "LA", "RA" ,"GC",]
-    statsB = ["LR","DC", "TS","SL",  "PC", "LA", "RA" ,"GC",]
-    statsC = ["DC", "TS","SL",  "PC", "LA", "RA" ,"GC",]
+    statsB =       ["LR","DC", "TS","SL",  "PC", "LA", "RA" ,"GC",]
+    statsC =            ["DC", "TS","SL",  "PC", "LA", "RA" ,"GC",]
     titlesA = ["First Open",
-            "Learner Reached (app_launch)", "Download Completed", "Tapped Start", 
-            "Selected Level", "Puzzle Completed", "Learners Acquired", "Readers Acquired", "Game Completed"
+            "Learner Reached (app_launch)",
+            "Download Completed",
+            "Tapped Start", 
+            "Selected Level",
+            "Puzzle Completed",
+            "Learners Acquired",
+            "Readers Acquired",
+            "Game Completed"
         ]
     titlesB = [
-            "Learner Reached (app_launch)", "Download Completed", "Tapped Start", 
-            "Selected Level", "Puzzle Completed", "Learners Acquired", "Readers Acquired", "Game Completed"
+            "Learner Reached (app_launch)",
+            "Download Completed",
+            "Tapped Start", 
+            "Selected Level",
+            "Puzzle Completed",
+            "Learners Acquired",
+            "Readers Acquired",
+            "Game Completed"
         ]
-    titlesC = ["Download Completed", "Tapped Start", 
-            "Selected Level", "Puzzle Completed", "Learners Acquired", "Readers Acquired", "Game Completed"
+    titlesC = ["Download Completed",
+               "Tapped Start", 
+               "Selected Level",
+               "Puzzle Completed",
+               "Learners Acquired",
+               "Readers Acquired", 
+               "Game Completed"
         ]
 
 
@@ -87,6 +104,7 @@ def create_funnels(selected_source,
         st.caption(start + " to " + end)
 
         metrics_data = {}
+
         for stat in stats:
             metrics_data[stat] = metrics.get_totals_by_metric(source_id=selected_source,
                 daterange=daterange,
@@ -95,7 +113,7 @@ def create_funnels(selected_source,
                 countries_list=countries_list,
                 user_list=user_list
             )
-        
+
         # If a specific app version is selected, we don't have LR data, so this is a way to not show it
         # The reason we don't use app_version directly is because if we are comparing funnels, if one uses it
         # we want the other to exclude that level as well.
