@@ -6,7 +6,6 @@ WITH
     CAST(DATE(TIMESTAMP_MICROS(user_first_touch_timestamp)) AS DATE) AS first_open,
     geo.country AS country,
     LOWER(REGEXP_EXTRACT(app_params.value.string_value, '[?&]cr_lang=([^&]+)')) AS app_language,
-    MIN(version_params.value.string_value )AS app_version,
     CASE
       WHEN campaign_props.value.int_value IS NOT NULL THEN CAST(campaign_props.value.int_value AS STRING)
       ELSE campaign_props.value.string_value
@@ -55,7 +54,7 @@ WITH
     END
       ) AS selected_level_count,
     SUM(CASE
-        WHEN event_name = 'tapped_start' THEN 1
+       WHEN event_name in('tapped_start','user_clicked')  THEN 1
         ELSE 0
     END
       ) AS tapped_start_count,
@@ -70,7 +69,6 @@ WITH
     UNNEST (event_params) AS success_params,
     UNNEST(event_params) AS level_params,
     UNNEST(event_params) AS cr_user_id_params,
-    UNNEST(event_params) AS version_params,
     UNNEST(user_properties) AS campaign_props,
     UNNEST(user_properties) AS source_props
 
@@ -99,7 +97,6 @@ WITH
       OR campaign_props.value.string_value IS NOT NULL)
     AND app_params.value.string_value LIKE '%https://feedthemonster.curiouscontent.org%'
     AND device.web_info.hostname LIKE 'feedthemonster.curiouscontent.org%'
-    AND version_params.key = 'version_number'
     AND cr_user_id_params.key = 'cr_user_id'
     AND CAST(DATE(TIMESTAMP_MICROS(user_first_touch_timestamp)) AS DATE) BETWEEN '2024-11-08'
     AND CURRENT_DATE()
@@ -124,7 +121,6 @@ SELECT
   source_id,
   max_user_level,
   max_game_level,
-  app_version,
   la_date,
   CASE
     WHEN level_completed_count > 0 THEN 'level_completed'
@@ -150,5 +146,4 @@ GROUP BY
   9,
   10,
   11,
-  12,
-  13
+  12
