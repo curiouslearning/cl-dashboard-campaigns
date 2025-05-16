@@ -36,8 +36,9 @@ col1, col2, col3 = st.columns([1,1,1], gap="large")
 
 with col1:
     st.subheader("Source Cohort")
-    # Country selection
+
     source_ids = campaign_users_app_launch.source_id.unique()
+    source_ids = ui.clean_sources(source_ids)
     selected_source = st.selectbox(
         label="Select a Source", options=source_ids, index=None,key="home-1")
     

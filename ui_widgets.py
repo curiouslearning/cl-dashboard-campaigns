@@ -449,3 +449,16 @@ def level_comparison_selector(placement="side"):
             label="Upper level", options=upper_levels, key="lcs-4"
         )
     return upper_level, bottom_level
+
+
+def clean_sources(source_ids):
+    source_ids = source_ids.tolist()
+
+    # List of values to remove
+    to_remove = {"QAtest", "testRajesh", "testNikhil", "testNikhil2"}
+
+    # Filter out unwanted values
+    source_ids = [sid for sid in source_ids if sid not in to_remove]
+
+    return source_ids
+ 
