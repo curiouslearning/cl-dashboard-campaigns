@@ -48,19 +48,19 @@ async def get_campaign_data():
 
         sql_campaign_users_app_launch = f"""
             SELECT *
-            FROM `dataexploration-193817.user_data.cr_app_launch_campaign_data_inc`
+            FROM `dataexploration-193817.user_data.cr_app_launch_campaign_data`
             WHERE first_open >= '{start_date}'
          """
 
         sql_campaign_users_progress = f"""
             SELECT *
-            FROM `dataexploration-193817.user_data.cr_user_progress_campaign_data_inc`
+            FROM `dataexploration-193817.user_data.cr_user_progress_campaign_data`
             WHERE first_open >= '{start_date}'
          """
 
         sql_unattributed_app_launch_events = f"""
             SELECT *
-            FROM `dataexploration-193817.user_data.unattributed_app_launch_events_inc`
+            FROM `dataexploration-193817.user_data.unattributed_app_launch_events`
             WHERE event_date >= '{start_date}'
          """
 
