@@ -66,6 +66,9 @@ def cleanup_users(df):
     df["app_language"] = df["app_language"].replace(
         "arabictest", "arabic"
     )
+    df["app_language"] = df["app_language"].replace(
+        "farsitest", "farsi"
+    )
 
 
     # Remove garbage sources
