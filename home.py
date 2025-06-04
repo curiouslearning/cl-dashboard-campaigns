@@ -71,9 +71,10 @@ if len(daterange) == 2:
     start = daterange[0].strftime("%b %d, %Y")
     end = daterange[1].strftime("%b %d, %Y")
     col1.write("Timerange: " + start + " to " + end)
+    
     #select a date cohort of users to track        
     df_user_cohort = metrics.filter_user_data(
-            daterange=daterange, countries_list=countries_list, stat="LR", language=languages)
+            daterange=daterange, countries_list=countries_list, stat="LR", language=language)
 
     user_cohort_list = df_user_cohort["cr_user_id"]
 
@@ -81,7 +82,8 @@ if len(daterange) == 2:
     today = dt.datetime.now().date()
     daterange_to_today = [daterange[0], today]
     df_users_filtered = metrics.filter_user_data(daterange=daterange_to_today, countries_list=countries_list,
-                                stat="LR", language=languages, user_list=user_cohort_list,source_id=selected_source)
+                                                 stat="LR", language=language, user_list=user_cohort_list, source_id=selected_source)
+
 
     LR = metrics.get_totals_by_metric(
         daterange_to_today, countries_list, stat="LR",  language=language, source_id=selected_source, user_list=user_cohort_list
@@ -97,27 +99,20 @@ if len(daterange) == 2:
         st.metric(label="Learners Reached", value=prettify(int(LR)))
         st.metric(label="Learners Acquired", value=prettify(int(LA)))
 
-    # Group filtered users by campaign
     df_users_filtered = df_users_filtered.groupby("campaign_id").agg({
         'country': 'first',
         'app_language': 'first',
-        'user_pseudo_id': 'size'  # the column that represents the count for "LR"
+        'user_pseudo_id': 'size'
     }).rename(columns={'user_pseudo_id': 'LR'}).reset_index()
 
     # Define query conditions for campaigns
     campaign_conditions = [f"@daterange[0] <= segment_date <= @daterange[1]"]
-    if countries_list[0] != "All":
-        campaign_conditions.append("country.isin(@countries_list)")
-    if language[0] != "All":
-        campaign_conditions.append("app_language == @language")
-
-    # Apply query to filter campaigns
     campaign_query = " and ".join(campaign_conditions)
     df_campaigns_filtered = df_campaigns_all.query(campaign_query)
 
     # Roll up campaign data and merge with filtered users
     df_campaigns_rollup = campaigns.rollup_campaign_data(df_campaigns_filtered)
-
+    
     # Merge with users and campaigns rollup data
     df_table = (
         df_users_filtered

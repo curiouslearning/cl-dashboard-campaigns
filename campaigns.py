@@ -83,6 +83,9 @@ async def get_campaign_data():
     campaign_users_app_launch, campaign_users_progress = users.clean_users_to_single_language(
         campaign_users_app_launch, campaign_users_progress)
     
+    campaign_users_app_launch = users.cleanup_users(campaign_users_app_launch)
+    campaign_users_progress = users.cleanup_users(campaign_users_progress)
+ 
     p.print(color="red")
     return unattributed_app_launch_events,campaign_users_progress, campaign_users_app_launch, google_ads_data, facebook_ads_data
 
