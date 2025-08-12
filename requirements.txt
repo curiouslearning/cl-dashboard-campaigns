@@ -13,3 +13,5 @@ st-pages
 db-dtypes
 BeautifulSoup4
 pathlib
+scikit-learn
+gcsfs

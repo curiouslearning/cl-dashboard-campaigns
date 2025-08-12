@@ -455,8 +455,8 @@ def clean_sources(source_ids):
     source_ids = source_ids.tolist()
 
     # List of values to remove
-    to_remove = {"QAtest", "testRajesh", "testNikhil", "testNikhil2"}
-
+    from users import sources_to_remove
+    to_remove =sources_to_remove
     # Filter out unwanted values
     source_ids = [sid for sid in source_ids if sid not in to_remove]
 

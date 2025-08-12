@@ -10,7 +10,8 @@ start_date = '2024-05-01'
 # both language and country through a naming convention.  So we are only collecting
 # and reporting on daily campaign segment data from that day forward.
 
-sources_to_remove = ['testingSource', 'DSS-Botswana']
+sources_to_remove = ['testingSource', 'DSS-Botswana', 'QAtestfacebook', 'test',"QAtest", "testRajesh", "testNikhil", "testNikhil2"
+]
 
 @st.cache_data(ttl="1d", show_spinner=False)
 def load_parquet_from_gcs(file_pattern: str) -> pd.DataFrame:
@@ -46,9 +47,6 @@ def ensure_user_data_initialized():
             st.text(traceback.format_exc())
             st.stop()
 
-
-start_date = pd.Timestamp("2024-05-01")
-sources_to_remove = ["testingSource", "DSS-Botswana"]
 
 def init_user_data():
     if st.session_state.get("user_data_initialized"):

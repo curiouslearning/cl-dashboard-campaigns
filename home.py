@@ -105,6 +105,7 @@ if len(daterange) == 2:
 
     df_users_filtered = df_users_filtered.groupby("campaign_id").agg({
         'country': 'first',
+        'source_id':'first',
         'app_language': 'first',
         'user_pseudo_id': 'size'
     }).rename(columns={'user_pseudo_id': 'LR'}).reset_index()
@@ -116,7 +117,7 @@ if len(daterange) == 2:
 
     # Roll up campaign data and merge with filtered users
     df_campaigns_rollup = campaigns.rollup_campaign_data(df_campaigns_filtered)
-    
+
     # Merge with users and campaigns rollup data
     df_table = (
         df_users_filtered
@@ -126,8 +127,12 @@ if len(daterange) == 2:
 
     # Fill missing values in key columns and drop the unnecessary columns
     df_table['country'] = df_table['country'].combine_first(df_table['country_campaign'])
-    df_table['app_language'] = df_table['app_language'].combine_first(df_table['app_language_campaign'])
-    df_table['campaign_name'] = df_table['campaign_name'].fillna(df_table['campaign_name_lookup'])
+    df_table['source_id'] = df_table['source_id'].combine_first(
+        df_table['country_campaign'])
+    df_table['app_language'] = df_table['app_language'].combine_first(
+        df_table['app_language_campaign'])
+    df_table['campaign_name'] = df_table['campaign_name'].fillna(
+        df_table['campaign_name_lookup'])
 
     # Drop extra columns after filling values
     df_table = df_table.drop(columns=['country_campaign', 'app_language_campaign', 'campaign_name_lookup'])
@@ -138,9 +143,9 @@ if len(daterange) == 2:
         # Calculate 'LRC' if table is not empty
         if not df_table.empty:
             df_table["LRC"] = np.where(df_table["LR"] != 0, (df_table["cost"] / df_table["LR"]).round(2), 0)
-            
+
             # Reorder columns for final output
-            final_columns = ['campaign_id', 'campaign_name', 'LR', "cost", "LRC", "country", "app_language"]
+            final_columns = ['campaign_id','source_id', 'campaign_name', 'LR', "cost", "LRC", "country", "app_language"]
             df_table = df_table[final_columns]
             
             # Display the paginated dataframe
