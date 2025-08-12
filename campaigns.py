@@ -3,7 +3,7 @@ import pandas as pd
 from rich import print as print
 import asyncio
 from pyinstrument import Profiler
-import users
+from settings import get_gcp_credentials
 
 #Event data started getting the campaign metadata in production on this date
 start_date = '2024-11-08'
@@ -13,7 +13,7 @@ start_date = '2024-11-08'
 async def get_campaign_data():
     p = Profiler(async_mode="disabled")
     with p:
-        bq_client = st.session_state.bq_client
+        _, bq_client = get_gcp_credentials()
 
         # Helper function to run BigQuery queries asynchronously
         async def run_query(query):
@@ -46,31 +46,9 @@ async def get_campaign_data():
             ORDER BY d.data_date_start DESC;
         """
 
-        sql_campaign_users_app_launch = f"""
-            SELECT *
-            FROM `dataexploration-193817.user_data.cr_app_launch_campaign_data`
-            WHERE first_open >= '{start_date}'
-         """
-
-        sql_campaign_users_progress = f"""
-            SELECT *
-            FROM `dataexploration-193817.user_data.cr_user_progress_campaign_data`
-            WHERE first_open >= '{start_date}'
-         """
-
-        sql_unattributed_app_launch_events = f"""
-            SELECT *
-            FROM `dataexploration-193817.user_data.unattributed_app_launch_events`
-            WHERE event_date >= '{start_date}'
-         """
-
-
-
         # Run both queries concurrently using asyncio.gather
-        unattributed_app_launch_events,campaign_users_progress, campaign_users_app_launch, google_ads_data, facebook_ads_data = await asyncio.gather(
-            run_query(sql_unattributed_app_launch_events),
-            run_query(sql_campaign_users_progress),
-            run_query(sql_campaign_users_app_launch),
+        google_ads_data, facebook_ads_data = await asyncio.gather(
+
             run_query(google_ads_query),
             run_query(facebook_ads_query)
         )
@@ -80,14 +58,9 @@ async def get_campaign_data():
         google_ads_data["cost"] = google_ads_data["cost"].divide(1000000).round(2)
         google_ads_data["segment_date"] = pd.to_datetime(google_ads_data["segment_date"])
 
-    campaign_users_app_launch, campaign_users_progress = users.clean_users_to_single_language(
-        campaign_users_app_launch, campaign_users_progress)
-    
-    campaign_users_app_launch = users.cleanup_users(campaign_users_app_launch)
-    campaign_users_progress = users.cleanup_users(campaign_users_progress)
  
     p.print(color="red")
-    return unattributed_app_launch_events,campaign_users_progress, campaign_users_app_launch, google_ads_data, facebook_ads_data
+    return  google_ads_data, facebook_ads_data
 
 @st.cache_data(ttl="1d", show_spinner=False)
 # Looks for the string following the dash and makes that the associated country.
@@ -168,57 +141,4 @@ def rollup_campaign_data(df):
     return df
 
 
-
-@st.cache_data(ttl="1d", show_spinner=True)
-def build_campaign_table(df, daterange):
-
-    df = (
-        df.groupby(["country", "app_language"], as_index=False)
-        .agg(
-            {
-                "cost": "sum",
-            }
-        )
-        .round(2)
-    )
-
-    stats = ["LR", "PC", "LA","RA"]
-    for idx, row in df.iterrows():
-        country_list = [row["country"]]
-        language = [row["app_language"].lower()]
-
-        for stat in stats:
-
-            result = metrics.get_totals_by_metric(
-                countries_list=country_list,
-                language=language,
-                daterange=daterange,
-                stat=stat,
-                app="CR",
-            )
-            df.at[idx, stat] = result
-            df.at[idx, stat + "C"] = (
-                (df.at[idx, "cost"] / result).round(2) if result != 0 else 0
-            )
-            if stat == "LR":
-                LR = result
-            elif stat == "PC":
-                PC = result
-            elif stat == "LA":
-                LA = result
-            else:
-                RA = result
-        try:
-            LA_LR = round(LA / LR, 2) * 100
-            PC_LR = round(PC / LR, 2) * 100
-            RA_LR = round(RA / LR, 2) * 100
-        except ZeroDivisionError:
-            LA_LR = 0
-            PC_LR = 0
-            RA_LR = 0
-        df.at[idx, "PC_LR %"] = PC_LR
-        df.at[idx, "LA_LR %"] = LA_LR
-        df.at[idx, "RA_LR %"] = RA_LR
-
-    return df
 

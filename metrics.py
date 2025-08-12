@@ -18,7 +18,9 @@ def filter_user_data(
     user_list=None,
     source_id=None
 ):
-
+    # default column to filter user cohort list
+    user_list_key = "cr_user_id"
+    
     # Check if necessary dataframes are available
     if not all(key in st.session_state for key in ["campaign_users_app_launch", "campaign_users_progress"]):
         print("PROBLEM!")
@@ -30,10 +32,13 @@ def filter_user_data(
         df = st.session_state.campaign_users_app_launch
     else:
         df = st.session_state.campaign_users_progress
-
+    
     # Initialize a boolean mask
-    mask = (df['first_open'] >= daterange[0]) & (
-        df['first_open'] <= daterange[1])
+    mask = (
+        df["first_open"] >= pd.to_datetime(daterange[0])
+    ) & (
+        df["first_open"] <= pd.to_datetime(daterange[1])
+    )
 
     # Apply country filter if not "All"
     if countries_list[0] != "All":
@@ -61,8 +66,12 @@ def filter_user_data(
     df = df.loc[mask]
 
     # If user list subset was passed in, filter on that as well
+    # If user list subset was passed in, filter on that as well
     if user_list is not None:
-        df = df[df["cr_user_id"].isin(user_list)]
+        if len(user_list) == 0:
+            return pd.DataFrame()  # No matches — return empty
+        df = df[df[user_list_key].isin(user_list)]
+        
     return df
 
 

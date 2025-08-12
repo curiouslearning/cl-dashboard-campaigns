@@ -7,10 +7,6 @@ import metrics
 from millify import prettify
 
 
-
-default_daterange = [dt.datetime(2024, 11, 8).date(), dt.date.today()]
-
-
 def create_engagement_figure(funnel_data=[], key=""):
 
     fig = go.Figure(

@@ -1,5 +1,6 @@
+from users import ensure_user_data_initialized
 import streamlit as st
-import settings
+
 from rich import print as rprint
 import campaigns
 import datetime as dt
@@ -9,10 +10,13 @@ import users
 import numpy as np
 import metrics
 import ui_components as uic
+from settings import init_data
+from settings import initialize
 
 
-settings.initialize()
-settings.init_data()
+initialize()
+init_data()
+ensure_user_data_initialized()
 
 st.markdown(
     """
