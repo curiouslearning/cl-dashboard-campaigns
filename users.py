@@ -80,13 +80,30 @@ def init_user_data():
             campaign_users_app_launch = campaign_users_app_launch[
                 campaign_users_app_launch["first_open"] >= start_date]
 
-            # Remove excluded sources
-            if "source" in campaign_users_progress.columns:
-                campaign_users_progress = campaign_users_progress[~campaign_users_progress["source"].isin(
-                    sources_to_remove)]
-            if "source" in campaign_users_app_launch.columns:
-                campaign_users_app_launch = campaign_users_app_launch[~campaign_users_app_launch["source"].isin(
-                    sources_to_remove)]
+
+            # Fixed removals
+            sources_to_remove = ["DSS-Botswana","faceboaok"]
+
+            # Regex for dynamic removals
+            pattern = r"test"
+
+            if "source_id" in campaign_users_progress.columns:
+                campaign_users_progress = campaign_users_progress[
+                    ~(
+                        campaign_users_progress["source_id"].isin(sources_to_remove) |
+                        campaign_users_progress["source_id"].str.contains(
+                            pattern, case=False, na=False)
+                    )
+                ]
+
+            if "source_id" in campaign_users_app_launch.columns:
+                campaign_users_app_launch = campaign_users_app_launch[
+                    ~(
+                        campaign_users_app_launch["source_id"].isin(sources_to_remove) |
+                        campaign_users_app_launch["source_id"].str.contains(
+                            pattern, case=False, na=False)
+                    )
+                ]
 
             # Clean language
             campaign_users_app_launch["app_language"] = clean_language_column(
