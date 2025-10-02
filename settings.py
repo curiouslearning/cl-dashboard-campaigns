@@ -10,7 +10,7 @@ import json
 import asyncio
 import logging
 
-default_daterange = [dt.datetime(2021, 1, 1).date(), dt.date.today()]
+default_daterange = [dt.datetime(2024, 9, 11).date(), dt.date.today()]
 
 
 @st.cache_resource(ttl="1d")

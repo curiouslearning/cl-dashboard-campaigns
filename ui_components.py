@@ -1,10 +1,9 @@
-import pandas as pd
+
 import streamlit as st
-import datetime as dt
 from rich import print
 import plotly.graph_objects as go
-import metrics
 from millify import prettify
+from metrics import get_cohort_totals_by_metric
 
 
 def create_engagement_figure(funnel_data=[], key=""):
@@ -40,94 +39,6 @@ def create_engagement_figure(funnel_data=[], key=""):
     )
 
     return fig
-
-
-#Added user_list which is a list of cr_user_id to filter with
-@st.cache_data(ttl="1d", show_spinner="Building funnel")
-def create_funnels(selected_source,
-    countries_list,
-                   daterange,
-                   languages,
-                   key_prefix,
-                   displayLR=True,
-                   user_list=[],
-                   display_FO=True):
-    
-    statsA = ["FO", "LR","DC", "TS","SL",  "PC", "LA", "RA" ,"GC",]
-    statsB =       ["LR","DC", "TS","SL",  "PC", "LA", "RA" ,"GC",]
-    statsC =            ["DC", "TS","SL",  "PC", "LA", "RA" ,"GC",]
-    titlesA = ["First Open",
-            "Learner Reached (app_launch)",
-            "Download Completed",
-            "Tapped Start", 
-            "Selected Level",
-            "Puzzle Completed",
-            "Learners Acquired",
-            "Readers Acquired",
-            "Game Completed"
-        ]
-    titlesB = [
-            "Learner Reached (app_launch)",
-            "Download Completed",
-            "Tapped Start", 
-            "Selected Level",
-            "Puzzle Completed",
-            "Learners Acquired",
-            "Readers Acquired",
-            "Game Completed"
-        ]
-    titlesC = ["Download Completed",
-               "Tapped Start", 
-               "Selected Level",
-               "Puzzle Completed",
-               "Learners Acquired",
-               "Readers Acquired", 
-               "Game Completed"
-        ]
-
-
-    stats = statsA
-    titles = titlesA
-
-    if languages[0]  != 'All' or display_FO == False:
-        stats = statsB
-        titles = titlesB
-
-
-    if len(daterange) == 2:
-        start = daterange[0].strftime("%b %d, %Y")
-        end = daterange[1].strftime("%b %d, %Y")
-        st.caption(start + " to " + end)
-
-        metrics_data = {}
-
-        for stat in stats:
-            metrics_data[stat] = metrics.get_totals_by_metric(source_id=selected_source,
-                daterange=daterange,
-                stat=stat,
-                language=languages,
-                countries_list=countries_list,
-                user_list=user_list
-            )
-
-        # If a specific app version is selected, we don't have LR data, so this is a way to not show it
-        # The reason we don't use app_version directly is because if we are comparing funnels, if one uses it
-        # we want the other to exclude that level as well.
-        if displayLR:
-            funnel_data = {
-                "Title": titles,
-                "Count": [metrics_data[stat] for stat in stats]
-            }
-        else:
-            stats = statsC 
-            titles = titlesC
-            funnel_data = {
-                "Title": titles,
-                "Count": [metrics_data[stat] for stat in stats],
-            }
-
-        fig = create_engagement_figure(funnel_data, key=f"{key_prefix}-5")
-        st.plotly_chart(fig, use_container_width=True,key=f"{key_prefix}-6")
 
 
 @st.cache_data(ttl="1d", show_spinner=False)
@@ -214,8 +125,6 @@ def country_pie_chart(df):
         hole=0.3 , # Optional: for a donut chart effect
     )
 )
-
-
     fig.update_layout(
     title='Entries by Country',
     width=600,  # Set the custom width (in pixels)
@@ -223,3 +132,65 @@ def country_pie_chart(df):
 )
 
     st.plotly_chart(fig, use_container_width=True)
+    
+
+def create_funnels_by_cohort(
+    cohort_df,
+    key_prefix="",
+    funnel_size="medium",
+    cohort_df_LR=None,
+):
+
+    stats = ["LR", "DC", "TS", "SL", "PC", "LA", "RA", "GC"]
+    titles = [
+        "Learner Reached", "Download Completed", "Tapped Start",
+        "Selected Level", "Puzzle Completed", "Learners Acquired", "Readers Acquired", "Game Completed"
+    ]
+
+    user_key = "cr_user_id"
+
+    funnel_step_counts = []
+    for stat in stats:
+        if stat == "LR":
+            count = (
+                cohort_df_LR[user_key].nunique()
+                if cohort_df_LR is not None and user_key in cohort_df_LR.columns
+                else cohort_df[user_key].nunique()
+            )
+        else:
+            count = get_cohort_totals_by_metric(cohort_df, stat=stat)
+        funnel_step_counts.append(count)
+
+    # --- Percentages ---
+    percent_of_previous = [None]
+    for i in range(1, len(funnel_step_counts)):
+        prev = funnel_step_counts[i-1]
+        curr = funnel_step_counts[i]
+        percent = round(100 * curr / prev, 1) if prev and prev > 0 else None
+        percent_of_previous.append(percent)
+
+    percent_of_second = [None, None]
+    if len(funnel_step_counts) >= 2 and funnel_step_counts[1]:
+        for i in range(2, len(funnel_step_counts)):
+            second = funnel_step_counts[1]
+            curr = funnel_step_counts[i]
+            percent = round(100 * curr / second,
+                            1) if second and second > 0 else None
+            percent_of_second.append(percent)
+    else:
+        percent_of_second += [None] * (len(funnel_step_counts) - 2)
+
+    funnel_data = {
+        "Title": titles,
+        "Count": funnel_step_counts,
+        "PercentOfPrevious": percent_of_previous,
+        "PercentOfSecond": percent_of_second,
+    }
+
+    # Render with your existing function
+    fig = create_engagement_figure(
+        funnel_data,
+        key=f"{key_prefix}-5",
+    )
+
+    st.plotly_chart(fig, use_container_width=True, key=f"{key_prefix}-6")

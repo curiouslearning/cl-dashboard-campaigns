@@ -1,162 +1,155 @@
 import streamlit as st
 from rich import print
 import pandas as pd
-import numpy as np
-import datetime as dt
-import users
+from settings import default_daterange
 
-
-default_daterange = [dt.datetime(2024, 9, 11).date(), dt.date.today()]
-
-# Takes the complete user lists (cr_user_id) and filters based on input data, and returns
-# a new filtered dataset
-def filter_user_data(
-    daterange=default_daterange,
+def get_user_cohort_df(
+    session_df,
+    daterange=None,
+    languages=["All"],
     countries_list=["All"],
-    stat="LR",
-    language=["All"],
-    user_list=None,
-    source_id=None
+
+    source_id=None,
+    campaign_id=None,
 ):
-    # default column to filter user cohort list
-    user_list_key = "cr_user_id"
-    
-    # Check if necessary dataframes are available
-    if not all(key in st.session_state for key in ["campaign_users_app_launch", "campaign_users_progress"]):
-        print("PROBLEM!")
-        return pd.DataFrame()
+    """
+    Returns a DataFrame (all columns) for the cohort matching filters.
+    """
+    cohort_df = session_df.copy()
 
-    # Select the appropriate dataframe based on app and stat
+    # Apply filters
+    if daterange is not None and len(daterange) == 2:
+        start = pd.to_datetime(daterange[0])
+        end = pd.to_datetime(daterange[1])
+        cohort_df = cohort_df[
+            (cohort_df["first_open"] >= start) & (
+                cohort_df["first_open"] <= end)
+        ]
 
-    if stat == "LR":
-        df = st.session_state.campaign_users_app_launch
-    else:
-        df = st.session_state.campaign_users_progress
-    
-    # Initialize a boolean mask
-    mask = (
-        df["first_open"] >= pd.to_datetime(daterange[0])
-    ) & (
-        df["first_open"] <= pd.to_datetime(daterange[1])
-    )
+    if countries_list and countries_list != ["All"]:
+        cohort_df = cohort_df[cohort_df["country"].isin(countries_list)]
 
-    # Apply country filter if not "All"
-    if countries_list[0] != "All":
-        mask &= df['country'].isin(set(countries_list))
+    if languages and languages != ["All"]:
+        lang_col = "app_language" if "app_language" in cohort_df.columns else "language"
+        cohort_df = cohort_df[cohort_df[lang_col].isin(languages)]
 
-    # Apply language filter if not "All" and stat is not "FO"
-    if language[0] != "All" and stat != "FO":
-        mask &= df['app_language'].isin(set(language))
 
-    # Apply stat-specific filters
-    if stat == "LA":
-        mask &= (df['max_user_level'] >= 1)
-    elif stat == "RA":
-        mask &= (df['max_user_level'] >= 25)
-    elif stat == "GC":  # Game completed
-        mask &= (df['max_user_level'] >= 1) & (df['gpc'] >= 90)
-    elif stat == "LR" or stat == "FO":
-        # No additional filters for these stats beyond daterange and optional countries/language
-        pass
-
+    # New: filter by source_id and campaign_id
     if source_id is not None:
-        mask &= (df["source_id"] == source_id)
-        
-    # Filter the dataframe with the combined mask
-    df = df.loc[mask]
+        cohort_df = cohort_df[cohort_df["source_id"] == source_id]
+    if campaign_id is not None:
+        cohort_df = cohort_df[cohort_df["campaign_id"] == campaign_id]
 
-    # If user list subset was passed in, filter on that as well
-    # If user list subset was passed in, filter on that as well
-    if user_list is not None:
-        if len(user_list) == 0:
-            return pd.DataFrame()  # No matches — return empty
-        df = df[df[user_list_key].isin(user_list)]
-        
-    return df
+    return cohort_df
 
 
-def get_totals_by_metric(
-    daterange=default_daterange,
-    countries_list=[],
-    stat="LR",
-    language="All",
-    user_list=[], # New parameter allowing a filter of results by cr_user_id list
-    source_id=None
-):
-    
-    # if no list passed in then get the full list
-    if len(countries_list) == 0:
-        countries_list = users.get_country_list()
-
-    df_user_list = filter_user_data(
-        daterange, countries_list, stat,  language=language, user_list=user_list,source_id=source_id
+def get_filtered_cohort(daterange, language, countries_list, source_id=None, campaign_id=None):
+    """
+    Returns (user_cohort_df, user_cohort_df_LR) with all filters applied.
+    """
+    session_df_LR = select_user_dataframe(stat="LR")
+    user_cohort_df_LR = get_user_cohort_df(
+        session_df=session_df_LR,
+        daterange=daterange,
+        languages=language,
+        countries_list=countries_list,
+        source_id=source_id,
+        campaign_id=campaign_id
     )
 
-    if stat not in ["DC", "TS", "SL", "PC", "LA"]:
-        return len(df_user_list)  # All LR or FO
+    session_df = select_user_dataframe()
+    user_cohort_df = get_user_cohort_df(
+        session_df=session_df,
+        daterange=daterange,
+        languages=language,
+        countries_list=countries_list,
+        source_id=source_id,
+        campaign_id=campaign_id
+    )
+
+    return user_cohort_df, user_cohort_df_LR
+
+
+
+def select_user_dataframe(stat=None):
+    """
+    For this dashboard:
+      - If stat == "LR": use campaign_users_app_launch
+      - Else: use campaign_users_progress
+    """
+    if stat == "LR":
+        return st.session_state["campaign_users_app_launch"]
     else:
-        download_completed_count = len(
-            df_user_list[df_user_list["furthest_event"]
-                         == "download_completed"]
+        return st.session_state["campaign_users_progress"]
+
+
+    
+@st.cache_data(ttl="1d", show_spinner=False)
+def get_cohort_totals_by_metric(
+    cohort_df,
+    stat="LR"
+):
+    """
+    Given a cohort_df (already filtered!), count users in each funnel stage or apply stat-specific filter.
+    - cohort_df: DataFrame, filtered to your user cohort (one row per user)
+    - stat: string, which funnel metric to count ("LR", "DC", "TS", "SL", "PC", "LA", "RA", "GC")
+    """
+
+    # Stat-specific filters (formerly in filter_user_data)
+    if stat == "LA":
+        # Learners Acquired: max_user_level >= 1
+        return (cohort_df['max_user_level'] >= 1).sum()
+    elif stat == "RA":
+        # Readers Acquired: max_user_level >= 25
+        return (cohort_df['max_user_level'] >= 25).sum()
+    elif stat == "GC":
+        # Game Completed: max_user_level >= 1 AND gpc >= 90
+        return ((cohort_df['max_user_level'] >= 1) & (cohort_df['gpc'] >= 90)).sum()
+    elif stat == "LR":
+        # Learner Reached: all users in cohort
+        return len(cohort_df)
+
+    # Otherwise: classic funnel by furthest_event
+    furthest = cohort_df["furthest_event"]
+
+    download_completed_count = (furthest == "download_completed").sum()
+    tapped_start_count = (furthest == "tapped_start").sum()
+    selected_level_count = (furthest == "selected_level").sum()
+    puzzle_completed_count = (furthest == "puzzle_completed").sum()
+    level_completed_count = (furthest == "level_completed").sum()
+
+    if stat == "DC":
+        return (
+            download_completed_count
+            + tapped_start_count
+            + selected_level_count
+            + puzzle_completed_count
+            + level_completed_count
+        )
+    if stat == "TS":
+        return (
+            tapped_start_count
+            + selected_level_count
+            + puzzle_completed_count
+            + level_completed_count
+        )
+    if stat == "SL":
+        return (
+            selected_level_count
+            + puzzle_completed_count
+            + level_completed_count
+        )
+    if stat == "PC":
+        return (
+            puzzle_completed_count
+            + level_completed_count
         )
 
-        tapped_start_count = len(
-            df_user_list[df_user_list["furthest_event"] == "tapped_start"]
-        )
-        selected_level_count = len(
-            df_user_list[df_user_list["furthest_event"] == "selected_level"]
-        )
-        puzzle_completed_count = len(
-            df_user_list[df_user_list["furthest_event"] == "puzzle_completed"]
-        )
-        level_completed_count = len(
-            df_user_list[df_user_list["furthest_event"] == "level_completed"]
-        )
-
-        if stat == "DC":
-            return (
-                download_completed_count
-                + tapped_start_count
-                + selected_level_count
-                + puzzle_completed_count
-                + level_completed_count
-            )
-
-        if stat == "TS":
-
-            return (
-                tapped_start_count
-                + selected_level_count
-                + puzzle_completed_count
-                + level_completed_count
-            )
-
-        if stat == "SL":  # all PC and SL users implicitly imply those events
-
-            return (
-                selected_level_count
-                + puzzle_completed_count
-                + level_completed_count)
-
-        if stat == "PC":
-            return (puzzle_completed_count 
-                    + level_completed_count)
-
-        if stat == "LA":
-            return level_completed_count
-
-
-def remove_duplicates(df1, df2, column_name):
-    # Extract unique values in df2's column
-    df2_values = df2[column_name].unique()
-
-    # Filter out rows in df1 where column matches any value in df2
-    filtered_df = df1[~df1[column_name].isin(df2_values)]
-
-    return filtered_df
-
+    return 0  # default fallback
 
 # Takes a dataframe and filters according to input parameters
+
+
 def filter_dataframe(
     df,
     daterange=default_daterange,
@@ -164,9 +157,9 @@ def filter_dataframe(
     language=["All"],
     source_id=None
 ):
-    
+
     df["event_date"] = pd.to_datetime(
-             df["event_date"], format="%Y%m%d").dt.date
+        df["event_date"], format="%Y%m%d").dt.date
 
     # Initialize a boolean mask
     mask = (df['event_date'] >= daterange[0]) & (
@@ -176,7 +169,7 @@ def filter_dataframe(
     if countries_list[0] != "All":
         mask &= df['country'].isin(set(countries_list))
 
-    # Apply language filter if not "All" 
+    # Apply language filter if not "All"
     if language[0] != "All":
         mask &= df['app_language'].isin(set(language))
 
