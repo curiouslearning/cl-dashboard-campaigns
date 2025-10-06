@@ -5,6 +5,7 @@ from millify import prettify
 import ui_widgets as ui
 import users
 import numpy as np
+import pandas as pd
 from ui_components import create_funnels_by_cohort, unattributed_events_line_chart, country_pie_chart
 from settings import default_daterange, init_data, initialize
 from metrics import (
@@ -51,18 +52,59 @@ with col1:
         index=0
     )
 
+        # --- Find campaigns for selected source (or all) ---
     # --- Find campaigns for selected source (or all) ---
     if selected_source is None:
-        filtered_df = df
+        filtered_app_launch = campaign_users_app_launch
+        filtered_progress = st.session_state["campaign_users_progress"]
     else:
-        filtered_df = df[df["source_id"] == selected_source]
-    campaign_ids = sorted(filtered_df["campaign_id"].dropna().unique())
+        filtered_app_launch = campaign_users_app_launch[
+            campaign_users_app_launch["source_id"] == selected_source
+        ]
+        filtered_progress = st.session_state["campaign_users_progress"][
+            st.session_state["campaign_users_progress"]["source_id"] == selected_source
+        ]
 
-    campaign_options = (
-        df_campaign_names[df_campaign_names["campaign_id"].isin(campaign_ids)]
-        .drop_duplicates(subset=["campaign_id"])
+    # Combine campaign_ids seen in either dataset
+    user_campaign_ids = (
+        pd.concat([
+            filtered_app_launch[["campaign_id"]],
+            filtered_progress[["campaign_id"]],
+        ], ignore_index=True)
+        .dropna()
+        .drop_duplicates()
+    )
+
+    # Existing campaign_id/name pairs from rolled-up marketing data
+    df_campaign_names_existing = df_campaign_names[[
+        "campaign_id", "campaign_name"]].drop_duplicates()
+
+    # Identify campaign_ids missing from marketing data
+    missing_campaigns = user_campaign_ids[
+        ~user_campaign_ids["campaign_id"].isin(
+            df_campaign_names_existing["campaign_id"])
+    ].copy()
+
+    # Assign readable fallback names (you can customize this)
+    missing_campaigns["campaign_name"] = (
+        missing_campaigns["campaign_id"].astype(str) + " (Untracked)"
+    )
+
+    # Merge them to create a unified lookup for dropdowns and joins
+    df_campaign_names_combined = (
+        pd.concat([df_campaign_names_existing,
+                missing_campaigns], ignore_index=True)
+        .drop_duplicates(subset=["campaign_id"], keep="first")
         .sort_values("campaign_name")
     )
+
+    # Filter to campaigns relevant to this source selection
+    campaign_ids = sorted(user_campaign_ids["campaign_id"].dropna().unique())
+    campaign_options = df_campaign_names_combined[
+        df_campaign_names_combined["campaign_id"].isin(campaign_ids)
+    ]
+
+    # Build dropdown
     campaign_display = [
         f"{row['campaign_name']} ({row['campaign_id']})"
         for _, row in campaign_options.iterrows()
@@ -80,13 +122,13 @@ with col1:
     selected_campaign_id = None if selected_campaign_display == "All campaigns" else campaign_id_lookup[
         selected_campaign_display]
 
-    # Date range selection
-    st.write("Date subset")
-    selected_date, option = ui.calendar_selector(
-        key="fa-3", index=0, placement="middle")
-    daterange = ui.convert_date_to_range(selected_date, option)
-    if daterange[0] < default_daterange[0]:
-        daterange[0] = default_daterange[0]
+# Date range selection
+st.write("Date subset")
+selected_date, option = ui.calendar_selector(
+    key="fa-3", index=0, placement="middle")
+daterange = ui.convert_date_to_range(selected_date, option)
+if daterange[0] < default_daterange[0]:
+    daterange[0] = default_daterange[0]
 
 with col2:
     st.subheader("")
@@ -158,6 +200,11 @@ if len(daterange) == 2:
     if "campaign_name_lookup" in df_table:
         df_table["campaign_name"] = df_table["campaign_name"].fillna(
             df_table["campaign_name_lookup"])
+        
+    # Fill missing campaign_name with campaign_id for non-marketing campaigns
+    if "campaign_name" in df_table and "campaign_id" in df_table:
+        df_table["campaign_name"] = df_table["campaign_name"].fillna(
+            df_table["campaign_id"])
 
     df_table = df_table.drop(columns=[c for c in [
                              'country_campaign', 'source_id_campaign', 'app_language_campaign', 'campaign_name_lookup'] if c in df_table])
