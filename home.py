@@ -1,9 +1,8 @@
-from users import ensure_user_data_initialized
+from users import ensure_user_data_initialized, get_language_list, get_country_list
 import streamlit as st
 from campaigns import rollup_campaign_data
 from millify import prettify
 import ui_widgets as ui
-import users
 import numpy as np
 import pandas as pd
 from ui_components import create_funnels_by_cohort, unattributed_events_line_chart, country_pie_chart
@@ -122,27 +121,27 @@ with col1:
     selected_campaign_id = None if selected_campaign_display == "All campaigns" else campaign_id_lookup[
         selected_campaign_display]
 
-# Date range selection
-st.write("Date subset")
-selected_date, option = ui.calendar_selector(
-    key="fa-3", index=0, placement="middle")
-daterange = ui.convert_date_to_range(selected_date, option)
-if daterange[0] < default_daterange[0]:
-    daterange[0] = default_daterange[0]
+    # Date range selection
+    st.write("Date subset")
+    selected_date, option = ui.calendar_selector(
+        key="fa-3", index=0)
+    daterange = ui.convert_date_to_range(selected_date, option)
+    if daterange[0] < default_daterange[0]:
+        daterange[0] = default_daterange[0]
 
 with col2:
     st.subheader("")
     # Language and country selection
-    languages = users.get_language_list()
+    languages = get_language_list()
     language = ui.single_selector(
-        languages, title="Select a language", key="a-2", placement="middle"
+        languages, title="Select a language", key="a-2"
     )
-    countries_list = users.get_country_list()
+    countries_list = get_country_list()
     countries_list = ui.multi_select_all(
         countries_list,
         title="Country Selection",
         key="LA_LR_Time",
-        placement="middle",
+        
     )
     if not countries_list:
         countries_list = ["All"]
